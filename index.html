@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Voleybol Taktik Tahtası</title>
     <style>
         body {
@@ -10,7 +10,8 @@
             background-color: #f4f4f9;
             margin: 0;
             padding: 10px;
-            height: 100vh;
+            height: 100vh; /* Eski tarayıcılar için yedek */
+            height: 100dvh; /* Mobil klavye/adres çubuğu düzeltmesi */
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -161,7 +162,7 @@
         .role-orta { background-color: #2ecc71; }
         .role-libero { background-color: #f1c40f; color: #333; border-color: #333;}
 
-        /* --- İSİM VERME MODAL PENCERESİ CSS --- */
+        /* İSİM VERME MODAL PENCERESİ CSS */
         #nameModal {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -240,13 +241,12 @@
         
         <div id="bench-container">
             <div id="bench-title">YEDEK</div>
-            </div>
+        </div>
     </div>
 
     <div id="main-area">
         <div id="court-container">
-            <div id="court">
-                </div>
+            <div id="court"></div>
         </div>
     </div>
 
@@ -262,6 +262,16 @@
     </div>
 
     <script>
+        // --- KLAVYE KAYMA HATASI KESİN ÇÖZÜMÜ ---
+        // Herhangi bir input alanından odak kalktığında (klavye kapandığında) ekranı zorla tepeye yapıştırır.
+        document.addEventListener('focusout', function(e) {
+            if (e.target.tagName === 'INPUT') {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+            }
+        });
+
         let draggedElement = null;
         let rulesActive = true;
         let ballCoords = { x: 50, y: 50 }; 
@@ -316,7 +326,6 @@
             court.appendChild(ball);
         }
 
-        /* --- MODAL FONKSİYONLARI --- */
         function openNameModal() {
             const container = document.getElementById('modal-inputs');
             container.innerHTML = ''; 
@@ -339,14 +348,10 @@
 
         function closeNameModal() {
             document.getElementById('nameModal').style.display = 'none';
-            
-            // --- MOBİL SCROLL SIFIRLAMA ---
-            // Klavyenin kapanmasıyla tetiklenen kaymayı engellemek için tarayıcıyı en üste kilitler.
-            setTimeout(() => {
-                window.scrollTo(0, 0);
-                document.body.scrollTop = 0;
-                document.documentElement.scrollTop = 0;
-            }, 60);
+            // Modal kapandığında da bir kez emin olmak için sıfırla
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
         }
 
         function saveNames() {
@@ -356,7 +361,7 @@
                     p.name = inputVal.replace(" ", "<br>");
                 }
             });
-            closeNameModal(); // Kapatma mantığı scroll sıfırlamayı tetikler
+            closeNameModal();
             renderAll();
         }
 
