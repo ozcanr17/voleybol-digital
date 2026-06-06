@@ -22,13 +22,13 @@
 
         h3 { color: #333; margin: 5px 0 15px 0; text-align: center; font-size: 22px; }
 
-        /* Üst Panel: Butonlar ve Yedek Kulübesi Yan Yana */
+        /* Üst Panel */
         #top-area {
             display: flex;
             width: 100%;
             max-width: 500px;
-            gap: 15px;
-            margin-bottom: 25px; /* Yedek başlığı için ekstra boşluk */
+            gap: 10px;
+            margin-bottom: 25px;
             align-items: center;
             justify-content: space-between;
         }
@@ -36,13 +36,13 @@
         .controls {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             flex: 1;
             justify-content: flex-start;
         }
 
         button {
-            padding: 8px 12px;
+            padding: 8px 10px;
             font-size: 13px;
             background-color: #2c3e50;
             color: white;
@@ -50,11 +50,15 @@
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            transition: background 0.2s;
         }
         button:hover { background-color: #1a252f; }
         
         .phase-toggle { background-color: #e67e22; }
         .phase-toggle.active { background-color: #27ae60; }
+        
+        .name-btn { background-color: #8e44ad; }
+        .name-btn:hover { background-color: #732d91; }
 
         /* Kompakt Yedek Kulübesi */
         #bench-container {
@@ -67,7 +71,7 @@
             align-items: center;
             justify-content: center;
             border: 2px dashed #95a5a6;
-            flex-shrink: 0; /* Küçülmesini engeller */
+            flex-shrink: 0;
         }
 
         #bench-title {
@@ -118,7 +122,7 @@
             height: 45px;
             border-radius: 50%;
             color: white;
-            font-size: 10px;
+            font-size: 9.5px;
             font-weight: bold;
             border: 2px solid white;
             display: flex;
@@ -129,6 +133,10 @@
             z-index: 10;
             box-shadow: 0 3px 6px rgba(0,0,0,0.4);
             line-height: 1.1;
+            overflow: hidden;
+            word-wrap: break-word;
+            padding: 2px;
+            box-sizing: border-box;
         }
 
         /* Mikasa Top Stili */
@@ -144,7 +152,7 @@
             border: none;
             cursor: grab;
             z-index: 11;
-            filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.5)); /* 3D derinlik hissi */
+            filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.5));
         }
 
         .role-pasor { background-color: #3498db; }
@@ -152,6 +160,70 @@
         .role-smacor { background-color: #e74c3c; }
         .role-orta { background-color: #2ecc71; }
         .role-libero { background-color: #f1c40f; color: #333; border-color: #333;}
+
+        /* --- İSİM VERME MODAL PENCERESİ CSS --- */
+        #nameModal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-box {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            width: 300px;
+            max-width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-box h4 {
+            margin: 0;
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+
+        .modal-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-row label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #555;
+            width: 100px;
+        }
+
+        .modal-row input {
+            flex: 1;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-cancel { background-color: #95a5a6; }
+        .btn-cancel:hover { background-color: #7f8c8d; }
+        .btn-save { background-color: #27ae60; }
+        .btn-save:hover { background-color: #2ecc71; }
     </style>
 </head>
 <body>
@@ -160,9 +232,10 @@
     
     <div id="top-area">
         <div class="controls">
-            <button onclick="rotateTeam()">Döndür (Rotasyon)</button>
-            <button onclick="resetPositions()">Dizilimi Topla</button>
+            <button onclick="rotateTeam()">Döndür</button>
+            <button onclick="resetPositions()">Topla</button>
             <button id="phaseBtn" class="phase-toggle" onclick="togglePhase()">Mod: Servis/Manşet</button>
+            <button class="name-btn" onclick="openNameModal()">İsim Ver</button>
         </div>
         
         <div id="bench-container">
@@ -174,6 +247,17 @@
         <div id="court-container">
             <div id="court">
                 </div>
+        </div>
+    </div>
+
+    <div id="nameModal">
+        <div class="modal-box">
+            <h4>Takım Kadrosu</h4>
+            <div id="modal-inputs"></div>
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeNameModal()">İptal</button>
+                <button class="btn-save" onclick="saveNames()">Kaydet</button>
+            </div>
         </div>
     </div>
 
@@ -230,6 +314,42 @@
             ball.style.top = ballCoords.y + '%';
             ball.style.transform = 'translate(-50%, -50%)';
             court.appendChild(ball);
+        }
+
+        /* --- MODAL FONKSİYONLARI --- */
+        function openNameModal() {
+            const container = document.getElementById('modal-inputs');
+            container.innerHTML = ''; // İçini temizle
+            
+            team.forEach(p => {
+                let cleanName = p.name.replace(/<br>/g, " ");
+                let roleMap = {
+                    'pasor': 'Pasör', 'smacor': 'Smaçör', 'orta': 'Orta O.', 
+                    'pasor-caprazi': 'Çapraz', 'libero': 'Libero'
+                };
+                container.innerHTML += `
+                    <div class="modal-row">
+                        <label>${roleMap[p.role]}</label>
+                        <input type="text" id="input-${p.id}" value="${cleanName}">
+                    </div>
+                `;
+            });
+            document.getElementById('nameModal').style.display = 'flex';
+        }
+
+        function closeNameModal() {
+            document.getElementById('nameModal').style.display = 'none';
+        }
+
+        function saveNames() {
+            team.forEach(p => {
+                let inputVal = document.getElementById(`input-${p.id}`).value.trim();
+                if (inputVal !== "") {
+                    p.name = inputVal.replace(" ", "<br>");
+                }
+            });
+            closeNameModal();
+            renderAll();
         }
 
         function togglePhase() {
@@ -325,15 +445,23 @@
 
             const isBall = draggedElement.id === 'volleyball';
             const draggedId = draggedElement.id;
+            let swapped = false;
 
             if (targetPlayer && !isBall) {
                 let p1 = team.find(p => p.id === draggedId);
                 let p2 = team.find(p => p.id === targetPlayer.id);
                 
-                let tempLoc = p1.loc; let tempPos = p1.pos; let tempX = p1.x; let tempY = p1.y;
-                p1.loc = p2.loc; p1.pos = p2.pos; p1.x = p2.x; p1.y = p2.y;
-                p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
-            } else {
+                // DEĞİŞİKLİK MANTIĞI: Sadece biri yedekte, diğeri sahadaysa değişikliğe izin ver.
+                if ((p1.loc === 'bench' && p2.loc === 'court') || (p1.loc === 'court' && p2.loc === 'bench')) {
+                    let tempLoc = p1.loc; let tempPos = p1.pos; let tempX = p1.x; let tempY = p1.y;
+                    p1.loc = p2.loc; p1.pos = p2.pos; p1.x = p2.x; p1.y = p2.y;
+                    p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
+                    swapped = true;
+                }
+            } 
+            
+            // Swap olmadıysa ve sahanın içindeyse koordinatları ayarla
+            if (!swapped) {
                 const courtRect = document.getElementById('court').getBoundingClientRect();
                 
                 if (dCenter.x >= courtRect.left && dCenter.x <= courtRect.right &&
@@ -347,11 +475,45 @@
                     } else {
                         let p = team.find(p => p.id === draggedId);
                         if (p.loc === 'court') {
+                            
+                            // --- ÇARPIŞMA (OVERLAP) KONTROLÜ ---
+                            // Yarıçap ortalama %5'tir. Merkezler arası mesafe en az %5.5 olmalı.
+                            let iterations = 0;
+                            let overlapping = true;
+                            const MIN_DIST = 5.5; 
+                            
+                            while(overlapping && iterations < 5) {
+                                overlapping = false;
+                                team.forEach(other => {
+                                    if (other.id !== draggedId && other.loc === 'court') {
+                                        let dx = xPerc - other.x;
+                                        let dy = yPerc - other.y;
+                                        let dist = Math.sqrt(dx*dx + dy*dy);
+                                        
+                                        if (dist < MIN_DIST) {
+                                            overlapping = true;
+                                            if (dist === 0) { dx = 1; dy = 0; dist = 1; }
+                                            let pushDist = MIN_DIST - dist;
+                                            let angle = Math.atan2(dy, dx);
+                                            xPerc += Math.cos(angle) * pushDist;
+                                            yPerc += Math.sin(angle) * pushDist;
+                                        }
+                                    }
+                                });
+                                iterations++;
+                            }
+
+                            // --- KURALLAR (SINIR) KONTROLÜ ---
+                            // Oyuncu itilme sonrası kural dışına çıktıysa tekrar içeri hapseder.
                             if (rulesActive) {
                                 let bounds = getBoundsForPos(p.pos);
                                 xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX));
                                 yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY));
+                            } else {
+                                xPerc = Math.max(6, Math.min(xPerc, 94));
+                                yPerc = Math.max(6, Math.min(yPerc, 94));
                             }
+
                             p.x = xPerc;
                             p.y = yPerc;
                         }
