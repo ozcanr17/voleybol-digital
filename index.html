@@ -319,7 +319,7 @@
         /* --- MODAL FONKSİYONLARI --- */
         function openNameModal() {
             const container = document.getElementById('modal-inputs');
-            container.innerHTML = ''; // İçini temizle
+            container.innerHTML = ''; 
             
             team.forEach(p => {
                 let cleanName = p.name.replace(/<br>/g, " ");
@@ -339,6 +339,14 @@
 
         function closeNameModal() {
             document.getElementById('nameModal').style.display = 'none';
+            
+            // --- MOBİL SCROLL SIFIRLAMA ---
+            // Klavyenin kapanmasıyla tetiklenen kaymayı engellemek için tarayıcıyı en üste kilitler.
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+            }, 60);
         }
 
         function saveNames() {
@@ -348,7 +356,7 @@
                     p.name = inputVal.replace(" ", "<br>");
                 }
             });
-            closeNameModal();
+            closeNameModal(); // Kapatma mantığı scroll sıfırlamayı tetikler
             renderAll();
         }
 
@@ -451,7 +459,6 @@
                 let p1 = team.find(p => p.id === draggedId);
                 let p2 = team.find(p => p.id === targetPlayer.id);
                 
-                // DEĞİŞİKLİK MANTIĞI: Sadece biri yedekte, diğeri sahadaysa değişikliğe izin ver.
                 if ((p1.loc === 'bench' && p2.loc === 'court') || (p1.loc === 'court' && p2.loc === 'bench')) {
                     let tempLoc = p1.loc; let tempPos = p1.pos; let tempX = p1.x; let tempY = p1.y;
                     p1.loc = p2.loc; p1.pos = p2.pos; p1.x = p2.x; p1.y = p2.y;
@@ -460,7 +467,6 @@
                 }
             } 
             
-            // Swap olmadıysa ve sahanın içindeyse koordinatları ayarla
             if (!swapped) {
                 const courtRect = document.getElementById('court').getBoundingClientRect();
                 
@@ -476,8 +482,6 @@
                         let p = team.find(p => p.id === draggedId);
                         if (p.loc === 'court') {
                             
-                            // --- ÇARPIŞMA (OVERLAP) KONTROLÜ ---
-                            // Yarıçap ortalama %5'tir. Merkezler arası mesafe en az %5.5 olmalı.
                             let iterations = 0;
                             let overlapping = true;
                             const MIN_DIST = 5.5; 
@@ -503,8 +507,6 @@
                                 iterations++;
                             }
 
-                            // --- KURALLAR (SINIR) KONTROLÜ ---
-                            // Oyuncu itilme sonrası kural dışına çıktıysa tekrar içeri hapseder.
                             if (rulesActive) {
                                 let bounds = getBoundsForPos(p.pos);
                                 xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX));
