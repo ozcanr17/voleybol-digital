@@ -61,10 +61,10 @@
         .name-btn { background-color: #8e44ad; }
         .name-btn:hover { background-color: #732d91; }
 
-        .add-btn { background-color: #c0392b; }
-        .add-btn:hover { background-color: #a53125; }
+        .add-btn { background-color: #34495e; }
+        .add-btn:hover { background-color: #2c3e50; }
 
-        /* Ana Alan (Saha + Kulübe) */
+        /* Ana Alan */
         #main-area {
             display: flex;
             flex-direction: column;
@@ -83,7 +83,6 @@
             background-color: #3e74c9;
             padding: 4px; 
             border-radius: 4px;
-            box-sizing: border-box;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
             max-height: 55vh; 
         }
@@ -100,9 +99,18 @@
         .net-line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: #333; z-index: 1; }
         .attack-line { position: absolute; top: 33.33%; left: 0; width: 100%; height: 3px; background-color: white; opacity: 0.8; }
 
-        /* Estetik ve Düzenli Yedek Kulübesi */
-        #bench-container {
+        /* Yedek ve Butonlar Grubu */
+        #bench-wrapper {
+            display: flex;
             width: 100%;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: stretch;
+        }
+
+        /* Estetik Yedek Kulübesi */
+        #bench-container {
+            flex-grow: 1;
             min-height: 75px;
             background: #e0e4e8;
             border-radius: 8px;
@@ -114,7 +122,6 @@
             gap: 12px;
             padding: 12px 15px;
             border: 2px dashed #95a5a6;
-            margin-top: 15px; 
             box-sizing: border-box;
         }
 
@@ -129,6 +136,32 @@
             padding-right: 12px;
             line-height: 1.3;
         }
+
+        /* Yan Butonlar (Kaydet & Sıfırla) */
+        #side-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            width: 35px;
+        }
+
+        .icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 35px;
+            padding: 0;
+            border-radius: 6px;
+            flex: 1;
+        }
+        .icon-btn svg { width: 18px; height: 18px; }
+        
+        .btn-save-icon { background-color: #27ae60; }
+        .btn-save-icon:hover { background-color: #2ecc71; }
+        
+        .btn-delete-icon { background-color: #c0392b; }
+        .btn-delete-icon:hover { background-color: #e74c3c; }
 
         .player {
             width: 45px;
@@ -153,7 +186,6 @@
             flex-shrink: 0; 
         }
 
-        /* Mikasa Top Stili */
         .ball {
             width: 30px;
             height: 30px;
@@ -175,7 +207,7 @@
         .role-orta { background-color: #2ecc71; }
         .role-libero { background-color: #f1c40f; color: #333; border-color: #333;}
 
-        /* MODAL PENCERELERİ CSS */
+        /* MODAL PENCERELERİ */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -198,48 +230,32 @@
             gap: 12px;
         }
 
-        .modal-box h4 {
-            margin: 0;
-            text-align: center;
-            color: #2c3e50;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
-        }
-
-        .modal-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-row label {
-            font-size: 12px;
-            font-weight: bold;
-            color: #555;
-            width: 80px;
-        }
-
-        .modal-row input[type="text"], .modal-row select {
-            flex: 1;
-            padding: 6px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-
-        .modal-buttons-wrapper {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 15px;
-        }
+        .modal-box h4 { margin: 0; text-align: center; color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        .modal-row { display: flex; justify-content: space-between; align-items: center; }
+        .modal-row label { font-size: 12px; font-weight: bold; color: #555; width: 80px; }
+        .modal-row input[type="text"], .modal-row select { flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+        .modal-buttons-wrapper { display: flex; justify-content: flex-end; margin-top: 10px; gap: 10px; }
 
         .btn-cancel { background-color: #95a5a6; }
         .btn-cancel:hover { background-color: #7f8c8d; }
         .btn-save { background-color: #27ae60; }
         .btn-save:hover { background-color: #2ecc71; }
-        .btn-reset { background-color: #e74c3c; }
-        .btn-reset:hover { background-color: #c0392b; }
+        
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            z-index: 3000;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -261,34 +277,44 @@
             <div id="court"></div>
         </div>
         
-        <div id="bench-container">
-            <div id="bench-title">YEDEK KULÜBESİ<br><span style="font-size: 8.5px; font-weight: normal; color: #7f8c8d;">(Sürükleyip Değiştir)</span></div>
+        <div id="bench-wrapper">
+            <div id="bench-container">
+                <div id="bench-title">YEDEK KULÜBESİ<br><span style="font-size: 8.5px; font-weight: normal; color: #7f8c8d;">(Sürükleyip Değiştir)</span></div>
+            </div>
+            
+            <div id="side-buttons">
+                <button class="icon-btn btn-save-icon" onclick="saveToMemory()" title="Kadroyu Cihaza Kaydet">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                </button>
+                
+                <button class="icon-btn btn-delete-icon" onclick="resetNamesToDefault()" title="Kadroyu Sıfırla">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                        <line x1="10" y1="11" x2="10" y2="17"></line>
+                        <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- İSİM VERME MODALI -->
+    <div id="toast">✅ Kaydedildi!</div>
+
     <div id="nameModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Takım Kadrosu</h4>
             <div id="modal-inputs" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
-            
-            <!-- Hafızaya Al Seçeneği -->
-            <div class="modal-row" style="justify-content: flex-start; gap: 8px; margin-top: 5px;">
-                <input type="checkbox" id="saveNamesCheckbox" style="flex: none; width: auto; cursor: pointer;">
-                <label for="saveNamesCheckbox" style="width: auto; font-size: 11.5px; cursor: pointer; color: #2c3e50;">İsimleri ve kadroyu cihazda hatırla</label>
-            </div>
-
             <div class="modal-buttons-wrapper">
-                <button class="btn-cancel btn-reset" onclick="resetNamesToDefault()">Sıfırla</button>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-cancel" onclick="closeModal('nameModal')">İptal</button>
-                    <button class="btn-save" onclick="saveNames()">Kaydet</button>
-                </div>
+                <button class="btn-cancel" onclick="closeModal('nameModal')">Kapat</button>
             </div>
         </div>
     </div>
 
-    <!-- OYUNCU EKLEME MODALI -->
     <div id="addPlayerModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Yeni Oyuncu Ekle</h4>
@@ -306,17 +332,14 @@
                     <option value="libero">Libero</option>
                 </select>
             </div>
-            <div class="modal-buttons-wrapper" style="justify-content: flex-end;">
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-cancel" onclick="closeModal('addPlayerModal')">İptal</button>
-                    <button class="btn-save" onclick="addNewPlayer()">Ekle</button>
-                </div>
+            <div class="modal-buttons-wrapper">
+                <button class="btn-cancel" onclick="closeModal('addPlayerModal')">İptal</button>
+                <button class="btn-save" onclick="addNewPlayer()">Ekle</button>
             </div>
         </div>
     </div>
 
     <script>
-        // KLAVYE KAYMA HATASI KESİN ÇÖZÜMÜ
         document.addEventListener('focusout', function(e) {
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
                 window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
@@ -330,7 +353,6 @@
         let ballCoords = { x: 50, y: 50 }; 
         let playerIdCounter = 8; 
 
-        // Orijinal varsayılan kadro (Sıfırlamak için yedekte tutulur)
         const defaultTeam = [
             { id: 'p1', role: 'pasor', name: 'Pasör', pos: 1, loc: 'court', x: 83.3, y: 80 },
             { id: 'p2', role: 'smacor', name: 'Smaçör<br>1', pos: 2, loc: 'court', x: 83.3, y: 20 },
@@ -342,40 +364,42 @@
         ];
 
         let team = JSON.parse(JSON.stringify(defaultTeam));
-
         const baseCoords = {
             1: { x: 83.3, y: 80 }, 2: { x: 83.3, y: 20 }, 3: { x: 50.0, y: 20 },
             4: { x: 16.6, y: 20 }, 5: { x: 16.6, y: 80 }, 6: { x: 50.0, y: 80 }
         };
 
-        // --- HAFIZA (LOCALSTORAGE) YÖNETİMİ ---
-        function autoSaveMemory() {
-            const checkbox = document.getElementById('saveNamesCheckbox');
-            if (checkbox && checkbox.checked) {
-                localStorage.setItem('voleybolTeam', JSON.stringify(team));
-            }
-        }
-
-        // Sayfa yüklendiğinde hafızadaki veriyi çekme
         window.addEventListener('DOMContentLoaded', () => {
             const savedTeam = localStorage.getItem('voleybolTeam');
             if (savedTeam) {
                 try {
                     team = JSON.parse(savedTeam);
-                    // Sayaç kimliğini güncelle (yeni oyuncu eklendiğinde çakışmaması için)
                     let maxId = 7;
                     team.forEach(p => {
                         let idNum = parseInt(p.id.substring(1));
                         if(idNum > maxId) maxId = idNum;
                     });
                     playerIdCounter = maxId + 1;
-                    document.getElementById('saveNamesCheckbox').checked = true;
-                } catch (e) {
-                    console.error("Hafıza yüklenemedi", e);
-                }
+                } catch (e) { console.error(e); }
             }
             renderAll();
         });
+
+        function saveToMemory() {
+            localStorage.setItem('voleybolTeam', JSON.stringify(team));
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
+
+        function resetNamesToDefault() {
+            if(confirm("Tüm değişiklikler silinecek ve kadro sıfırlanacaktır. Emin misiniz?")) {
+                team = JSON.parse(JSON.stringify(defaultTeam));
+                playerIdCounter = 8;
+                localStorage.removeItem('voleybolTeam'); 
+                renderAll();
+            }
+        }
 
         function renderAll() {
             const court = document.getElementById('court');
@@ -414,14 +438,8 @@
 
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
-            setTimeout(() => {
-                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-                document.body.scrollTop = 0;
-                document.documentElement.scrollTop = 0;
-            }, 60);
         }
 
-        /* --- OYUNCU EKLEME --- */
         function openAddPlayerModal() {
             document.getElementById('newPlayerName').value = '';
             document.getElementById('addPlayerModal').style.display = 'flex';
@@ -431,42 +449,20 @@
             let nameVal = document.getElementById('newPlayerName').value.trim();
             if (nameVal === "") nameVal = "Yeni<br>Oyuncu";
             else nameVal = nameVal.replace(" ", "<br>");
-            
             let roleVal = document.getElementById('newPlayerRole').value;
-
-            team.push({
-                id: 'p' + playerIdCounter,
-                role: roleVal,
-                name: nameVal,
-                pos: null,
-                loc: 'bench',
-                x: null,
-                y: null
-            });
-            
+            team.push({ id: 'p' + playerIdCounter, role: roleVal, name: nameVal, pos: null, loc: 'bench', x: null, y: null });
             playerIdCounter++;
-            autoSaveMemory(); // Hafıza açıksa anında kaydet
             closeModal('addPlayerModal');
             renderAll();
         }
 
-        /* --- İSİM VERME & SIFIRLAMA --- */
         function openNameModal() {
             const container = document.getElementById('modal-inputs');
             container.innerHTML = ''; 
-            
             team.forEach(p => {
                 let cleanName = p.name.replace(/<br>/g, " ");
-                let roleMap = {
-                    'pasor': 'Pasör', 'smacor': 'Smaçör', 'orta': 'Orta O.', 
-                    'pasor-caprazi': 'Çapraz', 'libero': 'Libero'
-                };
-                container.innerHTML += `
-                    <div class="modal-row" style="margin-bottom:8px;">
-                        <label>${roleMap[p.role] || 'Oyuncu'}</label>
-                        <input type="text" id="input-${p.id}" value="${cleanName}">
-                    </div>
-                `;
+                let roleMap = { 'pasor': 'Pasör', 'smacor': 'Smaçör', 'orta': 'Orta O.', 'pasor-caprazi': 'Çapraz', 'libero': 'Libero' };
+                container.innerHTML += `<div class="modal-row" style="margin-bottom:8px;"><label>${roleMap[p.role] || 'Oyuncu'}</label><input type="text" id="input-${p.id}" value="${cleanName}"></div>`;
             });
             document.getElementById('nameModal').style.display = 'flex';
         }
@@ -476,69 +472,31 @@
                 let inputEl = document.getElementById(`input-${p.id}`);
                 if (inputEl) {
                     let inputVal = inputEl.value.trim();
-                    if (inputVal !== "") {
-                        p.name = inputVal.replace(" ", "<br>");
-                    }
+                    if (inputVal !== "") p.name = inputVal.replace(" ", "<br>");
                 }
             });
-
-            // Checkbox kontrolü
-            const checkbox = document.getElementById('saveNamesCheckbox');
-            if (checkbox.checked) {
-                localStorage.setItem('voleybolTeam', JSON.stringify(team));
-            } else {
-                localStorage.removeItem('voleybolTeam');
-            }
-
             closeModal('nameModal');
             renderAll();
         }
 
-        function resetNamesToDefault() {
-            if(confirm("Tüm isimler silinecek ve sonradan eklenen oyuncular kadrodan çıkarılacaktır. Emin misiniz?")) {
-                team = JSON.parse(JSON.stringify(defaultTeam));
-                playerIdCounter = 8;
-                document.getElementById('saveNamesCheckbox').checked = false;
-                localStorage.removeItem('voleybolTeam'); // Hafızayı da sil
-                closeModal('nameModal');
-                renderAll();
-            }
-        }
-
-        /* --- SAHA MEKANİKLERİ --- */
         function togglePhase() {
             rulesActive = !rulesActive;
             const phaseBtn = document.getElementById('phaseBtn');
-            if(rulesActive) {
-                phaseBtn.innerText = "Mod: Servis/Manşet";
-                phaseBtn.style.backgroundColor = "#e67e22";
-                resetPositions();
-            } else {
-                phaseBtn.innerText = "Mod: Oyun İçi (Serbest)";
-                phaseBtn.style.backgroundColor = "#27ae60";
-            }
+            if(rulesActive) { phaseBtn.innerText = "Mod: Servis/Manşet"; phaseBtn.style.backgroundColor = "#e67e22"; resetPositions(); }
+            else { phaseBtn.innerText = "Mod: Oyun İçi (Serbest)"; phaseBtn.style.backgroundColor = "#27ae60"; }
         }
 
         function rotateTeam() {
             team.forEach(p => {
-                if(p.loc === 'court') {
-                    p.pos = p.pos === 1 ? 6 : p.pos - 1;
-                    p.x = baseCoords[p.pos].x;
-                    p.y = baseCoords[p.pos].y;
-                }
+                if(p.loc === 'court') { p.pos = p.pos === 1 ? 6 : p.pos - 1; p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y; }
             });
-            autoSaveMemory();
             renderAll();
         }
 
         function resetPositions() {
             team.forEach(p => {
-                if (p.loc === 'court') {
-                    p.x = baseCoords[p.pos].x;
-                    p.y = baseCoords[p.pos].y;
-                }
+                if (p.loc === 'court') { p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y; }
             });
-            autoSaveMemory();
             renderAll();
         }
 
@@ -546,7 +504,6 @@
             let bounds = { minX: 6, maxX: 94, minY: 6, maxY: 94 };
             const getP = (pos) => team.find(p => p.pos === pos && p.loc === 'court') || {x: 50, y: 50};
             const p1 = getP(1), p2 = getP(2), p3 = getP(3), p4 = getP(4), p5 = getP(5), p6 = getP(6);
-
             if (posNum === 1) { bounds.minY = p2.y; bounds.minX = p6.x; }
             if (posNum === 2) { bounds.maxY = p1.y; bounds.minX = p3.x; }
             if (posNum === 3) { bounds.maxY = p6.y; bounds.maxX = p2.x; bounds.minX = p4.x; }
@@ -561,10 +518,8 @@
             if (!target) return;
             e.preventDefault();
             draggedElement = target;
-
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
             document.body.appendChild(draggedElement);
             draggedElement.style.position = 'fixed';
             draggedElement.style.zIndex = '1000';
@@ -584,29 +539,21 @@
 
         function handleDragEnd(e) {
             if (!draggedElement) return;
-            
             const dRect = draggedElement.getBoundingClientRect();
             const dCenter = { x: dRect.left + dRect.width/2, y: dRect.top + dRect.height/2 };
-            
             let targetPlayer = null;
             document.querySelectorAll('#bench-container .player, #court .player').forEach(p => {
                 if (p.id !== draggedElement.id) {
                     const pRect = p.getBoundingClientRect();
-                    if (dCenter.x >= pRect.left && dCenter.x <= pRect.right &&
-                        dCenter.y >= pRect.top && dCenter.y <= pRect.bottom) {
-                        targetPlayer = p;
-                    }
+                    if (dCenter.x >= pRect.left && dCenter.x <= pRect.right && dCenter.y >= pRect.top && dCenter.y <= pRect.bottom) targetPlayer = p;
                 }
             });
-
             const isBall = draggedElement.id === 'volleyball';
             const draggedId = draggedElement.id;
             let swapped = false;
-
             if (targetPlayer && !isBall) {
                 let p1 = team.find(p => p.id === draggedId);
                 let p2 = team.find(p => p.id === targetPlayer.id);
-                
                 if ((p1.loc === 'bench' && p2.loc === 'court') || (p1.loc === 'court' && p2.loc === 'bench')) {
                     let tempLoc = p1.loc; let tempPos = p1.pos; let tempX = p1.x; let tempY = p1.y;
                     p1.loc = p2.loc; p1.pos = p2.pos; p1.x = p2.x; p1.y = p2.y;
@@ -614,80 +561,48 @@
                     swapped = true;
                 }
             } 
-            
             if (!swapped) {
                 const courtRect = document.getElementById('court').getBoundingClientRect();
-                
-                if (dCenter.x >= courtRect.left && dCenter.x <= courtRect.right &&
-                    dCenter.y >= courtRect.top && dCenter.y <= courtRect.bottom) {
-                    
+                if (dCenter.x >= courtRect.left && dCenter.x <= courtRect.right && dCenter.y >= courtRect.top && dCenter.y <= courtRect.bottom) {
                     let xPerc = ((dCenter.x - courtRect.left) / courtRect.width) * 100;
                     let yPerc = ((dCenter.y - courtRect.top) / courtRect.height) * 100;
-                    
-                    if (isBall) {
-                        ballCoords = { x: Math.max(0, Math.min(xPerc, 100)), y: Math.max(0, Math.min(yPerc, 100)) };
-                    } else {
+                    if (isBall) ballCoords = { x: Math.max(0, Math.min(xPerc, 100)), y: Math.max(0, Math.min(yPerc, 100)) };
+                    else {
                         let p = team.find(p => p.id === draggedId);
                         if (p.loc === 'court') {
-                            
-                            let iterations = 0;
-                            let overlapping = true;
-                            const MIN_DIST = 5.5; 
-                            
+                            let iterations = 0; let overlapping = true; const MIN_DIST = 5.5; 
                             while(overlapping && iterations < 5) {
                                 overlapping = false;
                                 team.forEach(other => {
                                     if (other.id !== draggedId && other.loc === 'court') {
-                                        let dx = xPerc - other.x;
-                                        let dy = yPerc - other.y;
-                                        let dist = Math.sqrt(dx*dx + dy*dy);
-                                        
+                                        let dx = xPerc - other.x; let dy = yPerc - other.y; let dist = Math.sqrt(dx*dx + dy*dy);
                                         if (dist < MIN_DIST) {
-                                            overlapping = true;
-                                            if (dist === 0) { dx = 1; dy = 0; dist = 1; }
-                                            let pushDist = MIN_DIST - dist;
-                                            let angle = Math.atan2(dy, dx);
-                                            xPerc += Math.cos(angle) * pushDist;
-                                            yPerc += Math.sin(angle) * pushDist;
+                                            overlapping = true; if (dist === 0) { dx = 1; dy = 0; dist = 1; }
+                                            let pushDist = MIN_DIST - dist; let angle = Math.atan2(dy, dx);
+                                            xPerc += Math.cos(angle) * pushDist; yPerc += Math.sin(angle) * pushDist;
                                         }
                                     }
                                 });
                                 iterations++;
                             }
-
-                            if (rulesActive) {
-                                let bounds = getBoundsForPos(p.pos);
-                                xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX));
-                                yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY));
-                            } else {
-                                xPerc = Math.max(6, Math.min(xPerc, 94));
-                                yPerc = Math.max(6, Math.min(yPerc, 94));
-                            }
-
-                            p.x = xPerc;
-                            p.y = yPerc;
+                            if (rulesActive) { let bounds = getBoundsForPos(p.pos); xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX)); yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY)); }
+                            else { xPerc = Math.max(6, Math.min(xPerc, 94)); yPerc = Math.max(6, Math.min(yPerc, 94)); }
+                            p.x = xPerc; p.y = yPerc;
                         }
                     }
                 }
             }
-            
-            if (draggedElement.parentNode === document.body) {
-                document.body.removeChild(draggedElement);
-            }
+            if (draggedElement.parentNode === document.body) document.body.removeChild(draggedElement);
             draggedElement = null;
-            
-            autoSaveMemory(); // Sahadaki her değişimden sonra arka planda hafızayı tazeler
             renderAll();
         }
 
         document.addEventListener('mousedown', handleDragStart);
         document.addEventListener('mousemove', handleDragMove);
         document.addEventListener('mouseup', handleDragEnd);
-
         document.addEventListener('touchstart', handleDragStart, {passive: false});
         document.addEventListener('touchmove', handleDragMove, {passive: false});
         document.addEventListener('touchend', handleDragEnd);
-
     </script>
 </body>
 </html>
