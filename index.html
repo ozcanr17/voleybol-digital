@@ -10,8 +10,8 @@
             background-color: #f4f4f9;
             margin: 0;
             padding: 10px;
-            height: 100vh; /* Eski tarayıcılar için yedek */
-            height: 100dvh; /* Mobil klavye/adres çubuğu düzeltmesi */
+            height: 100vh; 
+            height: 100dvh; 
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -29,17 +29,17 @@
             width: 100%;
             max-width: 500px;
             gap: 10px;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
         }
 
         .controls {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
-            flex: 1;
-            justify-content: flex-start;
+            width: 100%;
+            justify-content: center;
         }
 
         button {
@@ -61,29 +61,10 @@
         .name-btn { background-color: #8e44ad; }
         .name-btn:hover { background-color: #732d91; }
 
-        /* Kompakt Yedek Kulübesi */
-        #bench-container {
-            width: 65px;
-            height: 65px;
-            background: #e0e4e8;
-            border-radius: 8px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #95a5a6;
-            flex-shrink: 0;
-        }
+        .add-btn { background-color: #c0392b; }
+        .add-btn:hover { background-color: #a53125; }
 
-        #bench-title {
-            position: absolute;
-            top: -20px;
-            font-size: 11px;
-            font-weight: bold;
-            color: #555;
-            white-space: nowrap;
-        }
-
+        /* Ana Alan (Saha + Kulübe) */
         #main-area {
             display: flex;
             flex-direction: column;
@@ -94,6 +75,7 @@
             justify-content: flex-start;
         }
 
+        /* Saha */
         #court-container {
             width: 100%;
             max-width: 100%;
@@ -103,7 +85,7 @@
             border-radius: 4px;
             box-sizing: border-box;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-            max-height: 65vh; 
+            max-height: 55vh; 
         }
 
         #court {
@@ -117,6 +99,36 @@
 
         .net-line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: #333; z-index: 1; }
         .attack-line { position: absolute; top: 33.33%; left: 0; width: 100%; height: 3px; background-color: white; opacity: 0.8; }
+
+        /* Estetik ve Düzenli Yedek Kulübesi */
+        #bench-container {
+            width: 100%;
+            min-height: 75px;
+            background: #e0e4e8;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap; 
+            gap: 12px;
+            padding: 12px 15px;
+            border: 2px dashed #95a5a6;
+            margin-top: 15px; 
+            box-sizing: border-box;
+        }
+
+        #bench-title {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            text-align: left;
+            width: 75px; 
+            flex-shrink: 0;
+            border-right: 2px solid #bdc3c7; 
+            padding-right: 12px;
+            line-height: 1.3;
+        }
 
         .player {
             width: 45px;
@@ -138,6 +150,7 @@
             word-wrap: break-word;
             padding: 2px;
             box-sizing: border-box;
+            flex-shrink: 0; 
         }
 
         /* Mikasa Top Stili */
@@ -162,8 +175,8 @@
         .role-orta { background-color: #2ecc71; }
         .role-libero { background-color: #f1c40f; color: #333; border-color: #333;}
 
-        /* İSİM VERME MODAL PENCERESİ CSS */
-        #nameModal {
+        /* MODAL PENCERELERİ CSS */
+        .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.6);
@@ -203,10 +216,10 @@
             font-size: 12px;
             font-weight: bold;
             color: #555;
-            width: 100px;
+            width: 80px;
         }
 
-        .modal-row input {
+        .modal-row input[type="text"], .modal-row select {
             flex: 1;
             padding: 6px;
             border: 1px solid #ccc;
@@ -214,17 +227,19 @@
             font-size: 13px;
         }
 
-        .modal-buttons {
+        .modal-buttons-wrapper {
             display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 10px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
         }
 
         .btn-cancel { background-color: #95a5a6; }
         .btn-cancel:hover { background-color: #7f8c8d; }
         .btn-save { background-color: #27ae60; }
         .btn-save:hover { background-color: #2ecc71; }
+        .btn-reset { background-color: #e74c3c; }
+        .btn-reset:hover { background-color: #c0392b; }
     </style>
 </head>
 <body>
@@ -237,10 +252,7 @@
             <button onclick="resetPositions()">Topla</button>
             <button id="phaseBtn" class="phase-toggle" onclick="togglePhase()">Mod: Servis/Manşet</button>
             <button class="name-btn" onclick="openNameModal()">İsim Ver</button>
-        </div>
-        
-        <div id="bench-container">
-            <div id="bench-title">YEDEK</div>
+            <button class="add-btn" onclick="openAddPlayerModal()">+ Oyuncu</button>
         </div>
     </div>
 
@@ -248,24 +260,65 @@
         <div id="court-container">
             <div id="court"></div>
         </div>
+        
+        <div id="bench-container">
+            <div id="bench-title">YEDEK KULÜBESİ<br><span style="font-size: 8.5px; font-weight: normal; color: #7f8c8d;">(Sürükleyip Değiştir)</span></div>
+        </div>
     </div>
 
-    <div id="nameModal">
+    <!-- İSİM VERME MODALI -->
+    <div id="nameModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Takım Kadrosu</h4>
-            <div id="modal-inputs"></div>
-            <div class="modal-buttons">
-                <button class="btn-cancel" onclick="closeNameModal()">İptal</button>
-                <button class="btn-save" onclick="saveNames()">Kaydet</button>
+            <div id="modal-inputs" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
+            
+            <!-- Hafızaya Al Seçeneği -->
+            <div class="modal-row" style="justify-content: flex-start; gap: 8px; margin-top: 5px;">
+                <input type="checkbox" id="saveNamesCheckbox" style="flex: none; width: auto; cursor: pointer;">
+                <label for="saveNamesCheckbox" style="width: auto; font-size: 11.5px; cursor: pointer; color: #2c3e50;">İsimleri ve kadroyu cihazda hatırla</label>
+            </div>
+
+            <div class="modal-buttons-wrapper">
+                <button class="btn-cancel btn-reset" onclick="resetNamesToDefault()">Sıfırla</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-cancel" onclick="closeModal('nameModal')">İptal</button>
+                    <button class="btn-save" onclick="saveNames()">Kaydet</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OYUNCU EKLEME MODALI -->
+    <div id="addPlayerModal" class="modal-overlay">
+        <div class="modal-box">
+            <h4>Yeni Oyuncu Ekle</h4>
+            <div class="modal-row">
+                <label>Adı:</label>
+                <input type="text" id="newPlayerName" placeholder="Örn: Ahmet">
+            </div>
+            <div class="modal-row">
+                <label>Rolü:</label>
+                <select id="newPlayerRole">
+                    <option value="smacor">Smaçör</option>
+                    <option value="pasor">Pasör</option>
+                    <option value="orta">Orta Oyuncu</option>
+                    <option value="pasor-caprazi">P. Çaprazı</option>
+                    <option value="libero">Libero</option>
+                </select>
+            </div>
+            <div class="modal-buttons-wrapper" style="justify-content: flex-end;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-cancel" onclick="closeModal('addPlayerModal')">İptal</button>
+                    <button class="btn-save" onclick="addNewPlayer()">Ekle</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // --- KLAVYE KAYMA HATASI KESİN ÇÖZÜMÜ ---
-        // Herhangi bir input alanından odak kalktığında (klavye kapandığında) ekranı zorla tepeye yapıştırır.
+        // KLAVYE KAYMA HATASI KESİN ÇÖZÜMÜ
         document.addEventListener('focusout', function(e) {
-            if (e.target.tagName === 'INPUT') {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
                 window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
                 document.body.scrollTop = 0;
                 document.documentElement.scrollTop = 0;
@@ -275,13 +328,10 @@
         let draggedElement = null;
         let rulesActive = true;
         let ballCoords = { x: 50, y: 50 }; 
+        let playerIdCounter = 8; 
 
-        const baseCoords = {
-            1: { x: 83.3, y: 80 }, 2: { x: 83.3, y: 20 }, 3: { x: 50.0, y: 20 },
-            4: { x: 16.6, y: 20 }, 5: { x: 16.6, y: 80 }, 6: { x: 50.0, y: 80 }
-        };
-
-        let team = [
+        // Orijinal varsayılan kadro (Sıfırlamak için yedekte tutulur)
+        const defaultTeam = [
             { id: 'p1', role: 'pasor', name: 'Pasör', pos: 1, loc: 'court', x: 83.3, y: 80 },
             { id: 'p2', role: 'smacor', name: 'Smaçör<br>1', pos: 2, loc: 'court', x: 83.3, y: 20 },
             { id: 'p3', role: 'orta', name: 'Orta<br>1', pos: 3, loc: 'court', x: 50.0, y: 20 },
@@ -291,12 +341,48 @@
             { id: 'p7', role: 'orta', name: 'Orta<br>2', pos: null, loc: 'bench', x: null, y: null }
         ];
 
+        let team = JSON.parse(JSON.stringify(defaultTeam));
+
+        const baseCoords = {
+            1: { x: 83.3, y: 80 }, 2: { x: 83.3, y: 20 }, 3: { x: 50.0, y: 20 },
+            4: { x: 16.6, y: 20 }, 5: { x: 16.6, y: 80 }, 6: { x: 50.0, y: 80 }
+        };
+
+        // --- HAFIZA (LOCALSTORAGE) YÖNETİMİ ---
+        function autoSaveMemory() {
+            const checkbox = document.getElementById('saveNamesCheckbox');
+            if (checkbox && checkbox.checked) {
+                localStorage.setItem('voleybolTeam', JSON.stringify(team));
+            }
+        }
+
+        // Sayfa yüklendiğinde hafızadaki veriyi çekme
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTeam = localStorage.getItem('voleybolTeam');
+            if (savedTeam) {
+                try {
+                    team = JSON.parse(savedTeam);
+                    // Sayaç kimliğini güncelle (yeni oyuncu eklendiğinde çakışmaması için)
+                    let maxId = 7;
+                    team.forEach(p => {
+                        let idNum = parseInt(p.id.substring(1));
+                        if(idNum > maxId) maxId = idNum;
+                    });
+                    playerIdCounter = maxId + 1;
+                    document.getElementById('saveNamesCheckbox').checked = true;
+                } catch (e) {
+                    console.error("Hafıza yüklenemedi", e);
+                }
+            }
+            renderAll();
+        });
+
         function renderAll() {
             const court = document.getElementById('court');
             const bench = document.getElementById('bench-container');
             
             court.innerHTML = '<div class="net-line"></div><div class="attack-line"></div>';
-            bench.innerHTML = '<div id="bench-title">YEDEK</div>';
+            bench.innerHTML = '<div id="bench-title">YEDEK KULÜBESİ<br><span style="font-size: 8.5px; font-weight: normal; color: #7f8c8d;">(Sürükleyip Değiştir)</span></div>';
 
             team.forEach(p => {
                 let div = document.createElement('div');
@@ -326,6 +412,45 @@
             court.appendChild(ball);
         }
 
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+            setTimeout(() => {
+                window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                document.body.scrollTop = 0;
+                document.documentElement.scrollTop = 0;
+            }, 60);
+        }
+
+        /* --- OYUNCU EKLEME --- */
+        function openAddPlayerModal() {
+            document.getElementById('newPlayerName').value = '';
+            document.getElementById('addPlayerModal').style.display = 'flex';
+        }
+
+        function addNewPlayer() {
+            let nameVal = document.getElementById('newPlayerName').value.trim();
+            if (nameVal === "") nameVal = "Yeni<br>Oyuncu";
+            else nameVal = nameVal.replace(" ", "<br>");
+            
+            let roleVal = document.getElementById('newPlayerRole').value;
+
+            team.push({
+                id: 'p' + playerIdCounter,
+                role: roleVal,
+                name: nameVal,
+                pos: null,
+                loc: 'bench',
+                x: null,
+                y: null
+            });
+            
+            playerIdCounter++;
+            autoSaveMemory(); // Hafıza açıksa anında kaydet
+            closeModal('addPlayerModal');
+            renderAll();
+        }
+
+        /* --- İSİM VERME & SIFIRLAMA --- */
         function openNameModal() {
             const container = document.getElementById('modal-inputs');
             container.innerHTML = ''; 
@@ -337,8 +462,8 @@
                     'pasor-caprazi': 'Çapraz', 'libero': 'Libero'
                 };
                 container.innerHTML += `
-                    <div class="modal-row">
-                        <label>${roleMap[p.role]}</label>
+                    <div class="modal-row" style="margin-bottom:8px;">
+                        <label>${roleMap[p.role] || 'Oyuncu'}</label>
                         <input type="text" id="input-${p.id}" value="${cleanName}">
                     </div>
                 `;
@@ -346,25 +471,41 @@
             document.getElementById('nameModal').style.display = 'flex';
         }
 
-        function closeNameModal() {
-            document.getElementById('nameModal').style.display = 'none';
-            // Modal kapandığında da bir kez emin olmak için sıfırla
-            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-            document.body.scrollTop = 0;
-            document.documentElement.scrollTop = 0;
-        }
-
         function saveNames() {
             team.forEach(p => {
-                let inputVal = document.getElementById(`input-${p.id}`).value.trim();
-                if (inputVal !== "") {
-                    p.name = inputVal.replace(" ", "<br>");
+                let inputEl = document.getElementById(`input-${p.id}`);
+                if (inputEl) {
+                    let inputVal = inputEl.value.trim();
+                    if (inputVal !== "") {
+                        p.name = inputVal.replace(" ", "<br>");
+                    }
                 }
             });
-            closeNameModal();
+
+            // Checkbox kontrolü
+            const checkbox = document.getElementById('saveNamesCheckbox');
+            if (checkbox.checked) {
+                localStorage.setItem('voleybolTeam', JSON.stringify(team));
+            } else {
+                localStorage.removeItem('voleybolTeam');
+            }
+
+            closeModal('nameModal');
             renderAll();
         }
 
+        function resetNamesToDefault() {
+            if(confirm("Tüm isimler silinecek ve sonradan eklenen oyuncular kadrodan çıkarılacaktır. Emin misiniz?")) {
+                team = JSON.parse(JSON.stringify(defaultTeam));
+                playerIdCounter = 8;
+                document.getElementById('saveNamesCheckbox').checked = false;
+                localStorage.removeItem('voleybolTeam'); // Hafızayı da sil
+                closeModal('nameModal');
+                renderAll();
+            }
+        }
+
+        /* --- SAHA MEKANİKLERİ --- */
         function togglePhase() {
             rulesActive = !rulesActive;
             const phaseBtn = document.getElementById('phaseBtn');
@@ -386,6 +527,7 @@
                     p.y = baseCoords[p.pos].y;
                 }
             });
+            autoSaveMemory();
             renderAll();
         }
 
@@ -396,6 +538,7 @@
                     p.y = baseCoords[p.pos].y;
                 }
             });
+            autoSaveMemory();
             renderAll();
         }
 
@@ -532,6 +675,8 @@
                 document.body.removeChild(draggedElement);
             }
             draggedElement = null;
+            
+            autoSaveMemory(); // Sahadaki her değişimden sonra arka planda hafızayı tazeler
             renderAll();
         }
 
@@ -543,7 +688,6 @@
         document.addEventListener('touchmove', handleDragMove, {passive: false});
         document.addEventListener('touchend', handleDragEnd);
 
-        renderAll();
     </script>
 </body>
 </html>
