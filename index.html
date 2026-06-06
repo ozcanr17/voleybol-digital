@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Voleybol Taktik Tahtası</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 10px;
+            height: 100vh; /* Ekrana tam oturur, scroll engellenir */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-sizing: border-box;
+            overflow: hidden;
+            touch-action: none; /* Mobilde istemsiz ekran kaymasını engeller */
+            user-select: none;
+        }
+
+        h3 { color: #333; margin: 0 0 10px 0; text-align: center; font-size: 22px; }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        button {
+            padding: 8px 12px;
+            font-size: 14px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #1a252f; }
+        
+        .phase-toggle { background-color: #e67e22; }
+        .phase-toggle.active { background-color: #27ae60; }
+
+        #main-area {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 500px;
+            flex-grow: 1;
+            gap: 15px;
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        /* Yedek Kulübesi Alanı */
+        #bench-container {
+            width: 100%;
+            background: #e0e4e8;
+            padding: 20px 10px 10px 10px;
+            border-radius: 8px;
+            position: relative;
+            min-height: 50px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        #bench-title {
+            position: absolute;
+            top: 4px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* İnceltilmiş Mavi Çerçeve ve Dinamik Saha */
+        #court-container {
+            width: 100%;
+            max-width: 100%;
+            aspect-ratio: 1 / 1;
+            background-color: #3e74c9;
+            padding: 4px; /* Çok ince mavi çizgi */
+            border-radius: 4px;
+            box-sizing: border-box;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            max-height: 65vh; /* Mobilde dışarı taşmayı engeller */
+        }
+
+        #court {
+            width: 100%;
+            height: 100%;
+            background-color: #f47a42;
+            position: relative;
+            border: 2px solid white;
+            box-sizing: border-box;
+        }
+
+        .net-line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: #333; z-index: 1; }
+        .attack-line { position: absolute; top: 33.33%; left: 0; width: 100%; height: 3px; background-color: white; opacity: 0.8; }
+
+        .player {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            border: 2px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: grab;
+            z-index: 10;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+            line-height: 1.1;
+        }
+
+        .ball {
+            width: 25px;
+            height: 25px;
+            background: radial-gradient(circle, #fff 40%, #f1c40f 80%, #3498db 100%);
+            border-radius: 50%;
+            border: 1px solid #333;
+            cursor: grab;
+            z-index: 11;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .role-pasor { background-color: #3498db; }
+        .role-pasor-caprazi { background-color: #9b59b6; }
+        .role-smacor { background-color: #e74c3c; }
+        .role-orta { background-color: #2ecc71; }
+        .role-libero { background-color: #f1c40f; color: #333; border-color: #333;}
+    </style>
+</head>
+<body>
+
+    <h3>Voleybol Taktik Tahtası</h3>
+    
+    <div class="controls">
+        <button onclick="rotateTeam()">Döndür (Rotasyon)</button>
+        <button onclick="resetPositions()">Dizilimi Topla</button>
+        <button id="phaseBtn" class="phase-toggle" onclick="togglePhase()">Mod: Servis/Manşet (Kurallar Açık)</button>
+    </div>
+
+    <div id="main-area">
+        <div id="bench-container">
+            <div id="bench-title">YEDEK KULÜBESİ (Değiştirmek için sürükle)</div>
+            </div>
+
+        <div id="court-container">
+            <div id="court">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        let draggedElement = null;
+        let rulesActive = true;
+        let ballCoords = { x: 50, y: 50 }; // Topun varsayılan konumu (%)
+
+        const baseCoords = {
+            1: { x: 83.3, y: 80 }, 2: { x: 83.3, y: 20 }, 3: { x: 50.0, y: 20 },
+            4: { x: 16.6, y: 20 }, 5: { x: 16.6, y: 80 }, 6: { x: 50.0, y: 80 }
+        };
+
+        // loc: 'court' veya 'bench'
+        let team = [
+            { id: 'p1', role: 'pasor', name: 'Pasör', pos: 1, loc: 'court', x: 83.3, y: 80 },
+            { id: 'p2', role: 'smacor', name: 'Smaçör<br>1', pos: 2, loc: 'court', x: 83.3, y: 20 },
+            { id: 'p3', role: 'orta', name: 'Orta<br>1', pos: 3, loc: 'court', x: 50.0, y: 20 },
+            { id: 'p4', role: 'pasor-caprazi', name: 'P.<br>Çaprazı', pos: 4, loc: 'court', x: 16.6, y: 20 },
+            { id: 'p5', role: 'smacor', name: 'Smaçör<br>2', pos: 5, loc: 'court', x: 16.6, y: 80 },
+            { id: 'p6', role: 'libero', name: 'Libero', pos: 6, loc: 'court', x: 50.0, y: 80 },
+            { id: 'p7', role: 'orta', name: 'Orta<br>2', pos: null, loc: 'bench', x: null, y: null }
+        ];
+
+        function renderAll() {
+            const court = document.getElementById('court');
+            const bench = document.getElementById('bench-container');
+            
+            court.innerHTML = '<div class="net-line"></div><div class="attack-line"></div>';
+            // Yedek kulübesi başlığını koruyarak temizle
+            bench.innerHTML = '<div id="bench-title">YEDEK KULÜBESİ (Değiştirmek için üzerine bırak)</div>';
+
+            team.forEach(p => {
+                let div = document.createElement('div');
+                div.className = `player role-${p.role}`;
+                div.id = p.id;
+                div.innerHTML = p.name;
+                
+                if (p.loc === 'court') {
+                    div.style.position = 'absolute';
+                    div.style.left = p.x + '%';
+                    div.style.top = p.y + '%';
+                    div.style.transform = 'translate(-50%, -50%)';
+                    court.appendChild(div);
+                } else {
+                    div.style.position = 'relative';
+                    bench.appendChild(div);
+                }
+            });
+
+            let ball = document.createElement('div');
+            ball.className = 'ball';
+            ball.id = 'volleyball';
+            ball.style.position = 'absolute';
+            ball.style.left = ballCoords.x + '%';
+            ball.style.top = ballCoords.y + '%';
+            ball.style.transform = 'translate(-50%, -50%)';
+            court.appendChild(ball);
+        }
+
+        function togglePhase() {
+            rulesActive = !rulesActive;
+            const phaseBtn = document.getElementById('phaseBtn');
+            if(rulesActive) {
+                phaseBtn.innerText = "Mod: Servis/Manşet (Kurallar Açık)";
+                phaseBtn.style.backgroundColor = "#e67e22";
+                resetPositions();
+            } else {
+                phaseBtn.innerText = "Mod: Oyun İçi (Serbest Dolaşım)";
+                phaseBtn.style.backgroundColor = "#27ae60";
+            }
+        }
+
+        function rotateTeam() {
+            team.forEach(p => {
+                if(p.loc === 'court') {
+                    p.pos = p.pos === 1 ? 6 : p.pos - 1;
+                    p.x = baseCoords[p.pos].x;
+                    p.y = baseCoords[p.pos].y;
+                }
+            });
+            renderAll();
+        }
+
+        function resetPositions() {
+            team.forEach(p => {
+                if (p.loc === 'court') {
+                    p.x = baseCoords[p.pos].x;
+                    p.y = baseCoords[p.pos].y;
+                }
+            });
+            renderAll();
+        }
+
+        function getBoundsForPos(posNum) {
+            let bounds = { minX: 6, maxX: 94, minY: 6, maxY: 94 };
+            const getP = (pos) => team.find(p => p.pos === pos && p.loc === 'court') || {x: 50, y: 50};
+            const p1 = getP(1), p2 = getP(2), p3 = getP(3), p4 = getP(4), p5 = getP(5), p6 = getP(6);
+
+            if (posNum === 1) { bounds.minY = p2.y; bounds.minX = p6.x; }
+            if (posNum === 2) { bounds.maxY = p1.y; bounds.minX = p3.x; }
+            if (posNum === 3) { bounds.maxY = p6.y; bounds.maxX = p2.x; bounds.minX = p4.x; }
+            if (posNum === 4) { bounds.maxY = p5.y; bounds.maxX = p3.x; }
+            if (posNum === 5) { bounds.minY = p4.y; bounds.maxX = p6.x; }
+            if (posNum === 6) { bounds.minY = p3.y; bounds.minX = p5.x; bounds.maxX = p1.x; }
+            return bounds;
+        }
+
+        // --- Sürükle ve Bırak Mantığı (Global Koordinat Sistemi) ---
+        function handleDragStart(e) {
+            const target = e.target.closest('.player, .ball');
+            if (!target) return;
+            e.preventDefault();
+            draggedElement = target;
+
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+            // Öğeyi DOM'dan koparıp body'ye sabitliyoruz ki alanlar arası pürüzsüz sürüklensin
+            document.body.appendChild(draggedElement);
+            draggedElement.style.position = 'fixed';
+            draggedElement.style.zIndex = '1000';
+            draggedElement.style.left = clientX + 'px';
+            draggedElement.style.top = clientY + 'px';
+            draggedElement.style.transform = 'translate(-50%, -50%) scale(1.15)';
+        }
+
+        function handleDragMove(e) {
+            if (!draggedElement) return;
+            e.preventDefault();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            draggedElement.style.left = clientX + 'px';
+            draggedElement.style.top = clientY + 'px';
+        }
+
+        function handleDragEnd(e) {
+            if (!draggedElement) return;
+            
+            const dRect = draggedElement.getBoundingClientRect();
+            const dCenter = { x: dRect.left + dRect.width/2, y: dRect.top + dRect.height/2 };
+            
+            // Başka bir oyuncunun üzerine bırakılıp bırakılmadığını kontrol et
+            let targetPlayer = null;
+            document.querySelectorAll('#bench-container .player, #court .player').forEach(p => {
+                if (p.id !== draggedElement.id) {
+                    const pRect = p.getBoundingClientRect();
+                    if (dCenter.x >= pRect.left && dCenter.x <= pRect.right &&
+                        dCenter.y >= pRect.top && dCenter.y <= pRect.bottom) {
+                        targetPlayer = p;
+                    }
+                }
+            });
+
+            const isBall = draggedElement.id === 'volleyball';
+            const draggedId = draggedElement.id;
+
+            if (targetPlayer && !isBall) {
+                // OYUNCU DEĞİŞİKLİĞİ (SWAP)
+                let p1 = team.find(p => p.id === draggedId);
+                let p2 = team.find(p => p.id === targetPlayer.id);
+                
+                let tempLoc = p1.loc; let tempPos = p1.pos; let tempX = p1.x; let tempY = p1.y;
+                p1.loc = p2.loc; p1.pos = p2.pos; p1.x = p2.x; p1.y = p2.y;
+                p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
+            } else {
+                // Sahada bir yere bırakıldıysa koordinatları kaydet
+                const courtRect = document.getElementById('court').getBoundingClientRect();
+                
+                if (dCenter.x >= courtRect.left && dCenter.x <= courtRect.right &&
+                    dCenter.y >= courtRect.top && dCenter.y <= courtRect.bottom) {
+                    
+                    let xPerc = ((dCenter.x - courtRect.left) / courtRect.width) * 100;
+                    let yPerc = ((dCenter.y - courtRect.top) / courtRect.height) * 100;
+                    
+                    if (isBall) {
+                        ballCoords = { x: Math.max(0, Math.min(xPerc, 100)), y: Math.max(0, Math.min(yPerc, 100)) };
+                    } else {
+                        let p = team.find(p => p.id === draggedId);
+                        if (p.loc === 'court') {
+                            if (rulesActive) {
+                                let bounds = getBoundsForPos(p.pos);
+                                xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX));
+                                yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY));
+                            }
+                            p.x = xPerc;
+                            p.y = yPerc;
+                        }
+                    }
+                }
+            }
+            
+            // Geçici sürükleme elementini temizle ve ekranı yeniden çiz
+            if (draggedElement.parentNode === document.body) {
+                document.body.removeChild(draggedElement);
+            }
+            draggedElement = null;
+            renderAll();
+        }
+
+        document.addEventListener('mousedown', handleDragStart);
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('mouseup', handleDragEnd);
+
+        document.addEventListener('touchstart', handleDragStart, {passive: false});
+        document.addEventListener('touchmove', handleDragMove, {passive: false});
+        document.addEventListener('touchend', handleDragEnd);
+
+        // İlk Yükleme
+        renderAll();
+    </script>
+</body>
+</html>
