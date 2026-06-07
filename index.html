@@ -310,7 +310,8 @@
             <h4>Takım Kadrosu</h4>
             <div id="modal-inputs" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
             <div class="modal-buttons-wrapper">
-                <button class="btn-cancel" onclick="closeModal('nameModal')">Kapat</button>
+                <button class="btn-cancel" onclick="closeModal('nameModal')">İptal</button>
+                <button class="btn-save" onclick="saveNames()">Kaydet</button>
             </div>
         </div>
     </div>
@@ -370,36 +371,73 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
-            const savedTeam = localStorage.getItem('voleybolTeam');
-            if (savedTeam) {
-                try {
-                    team = JSON.parse(savedTeam);
-                    let maxId = 7;
-                    team.forEach(p => {
-                        let idNum = parseInt(p.id.substring(1));
-                        if(idNum > maxId) maxId = idNum;
+    const savedTeam = localStorage.getItem('voleybolTeam');
+    if (savedTeam) {
+        try {
+            // Kaydedilmiş sadece isim/rol/id verisini alıyoruz
+            const parsedRoster = JSON.parse(savedTeam);
+            let maxId = 7;
+            
+            parsedRoster.forEach(savedPlayer => {
+                let existingPlayer = team.find(p => p.id === savedPlayer.id);
+                if (existingPlayer) {
+                    existingPlayer.name = savedPlayer.name;
+                    existingPlayer.role = savedPlayer.role;
+                } else {
+                    // Yeni eklenen bir oyuncuysa yedek kulübesinde başlat
+                    team.push({ 
+                        id: savedPlayer.id, 
+                        role: savedPlayer.role, 
+                        name: savedPlayer.name, 
+                        pos: null, 
+                        loc: 'bench', 
+                        x: null, 
+                        y: null 
                     });
-                    playerIdCounter = maxId + 1;
-                } catch (e) { console.error(e); }
-            }
-            renderAll();
-        });
+                }
+                
+                let idNum = parseInt(savedPlayer.id.substring(1));
+                if(idNum > maxId) maxId = idNum;
+            });
+            playerIdCounter = maxId + 1;
+        } catch (e) { console.error(e); }
+    }
+    renderAll();
+});
 
         function saveToMemory() {
-            localStorage.setItem('voleybolTeam', JSON.stringify(team));
-            const toast = document.getElementById('toast');
-            toast.style.opacity = '1';
-            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-        }
+    // Sadece id, rol ve isim bilgilerini filtreleyip kaydediyoruz
+    const rosterToSave = team.map(p => ({
+        id: p.id,
+        role: p.role,
+        name: p.name
+    }));
+    localStorage.setItem('voleybolTeam', JSON.stringify(rosterToSave));
+    
+    const toast = document.getElementById('toast');
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+}
 
         function resetNamesToDefault() {
-            if(confirm("Tüm değişiklikler silinecek ve kadro sıfırlanacaktır. Emin misiniz?")) {
-                team = JSON.parse(JSON.stringify(defaultTeam));
-                playerIdCounter = 8;
-                localStorage.removeItem('voleybolTeam'); 
-                renderAll();
+    if(confirm("Tüm isimler ve eklenen oyuncular silinip kadro sıfırlanacaktır. Sahadaki pozisyonlar korunacaktır. Emin misiniz?")) {
+        // Sonradan eklenen oyuncuları (p8 ve sonrası) listeden çıkar
+        team = team.filter(p => parseInt(p.id.substring(1)) <= 7);
+        
+        // Kalan orijinal 7 oyuncunun ismini ve rolünü sıfırla, ama koordinatlarına dokunma
+        team.forEach(p => {
+            let defaultP = defaultTeam.find(dp => dp.id === p.id);
+            if (defaultP) {
+                p.name = defaultP.name;
+                p.role = defaultP.role;
             }
-        }
+        });
+        
+        playerIdCounter = 8;
+        localStorage.removeItem('voleybolTeam'); 
+        renderAll();
+    }
+}
 
         function renderAll() {
             const court = document.getElementById('court');
