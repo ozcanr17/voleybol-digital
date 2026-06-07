@@ -23,20 +23,19 @@
 
         h3 { color: #333; margin: 5px 0 15px 0; text-align: center; font-size: 22px; }
 
-        /* ÜST PANEL ÇERÇEVESİ VE BÖLÜMLERİ */
+        /* ÜST PANEL ÇERÇEVESİ VE BÖLÜMLERİ (Yedek Kulübesi İle Aynı Tema) */
         #top-controls-container {
             display: flex;
             flex-direction: column;
             width: 100%;
             max-width: 500px;
-            background: #ffffff;
+            background: #e0e4e8; /* Yedek kulübesi arka planı */
             padding: 12px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            border-radius: 8px; /* Yedek kulübesi köşe yumuşatması */
             margin-bottom: 15px;
             gap: 12px;
             box-sizing: border-box;
-            border: 1px solid #e0e4e8;
+            border: 2px dashed #95a5a6; /* Yedek kulübesi kesikli kenarlığı */
         }
 
         .top-row {
@@ -46,7 +45,7 @@
             width: 100%;
             justify-content: center;
             padding-bottom: 12px;
-            border-bottom: 2px dashed #bdc3c7; /* Ayırıcı Çizgi */
+            border-bottom: 2px solid #bdc3c7; /* Yedek kulübesindeki ayrım çubuğu stili */
         }
 
         .phase-row {
@@ -72,7 +71,7 @@
         .btn-rotate { background-color: #2980b9; color: white; }
         .btn-rotate:hover { background-color: #2471a3; }
 
-        .btn-gather { background-color: #34495e; color: white; }
+        .btn-gather { background-color: #49daad; color: white; }
         .btn-gather:hover { background-color: #2c3e50; }
 
         .btn-name { background-color: #8e44ad; color: white; }
@@ -308,7 +307,7 @@
     
     <!-- ÇERÇEVELİ ÜST PANEL -->
     <div id="top-controls-container">
-        <!-- İŞLEV BUTONLARI ÜSTTE (Renklendirilmiş) -->
+        <!-- İŞLEV BUTONLARI ÜSTTE -->
         <div class="top-row">
             <button id="rotateBtn" class="btn-rotate" onclick="rotateTeam()">Döndür (Rot: 1)</button>
             <button class="btn-gather" onclick="resetPositions()">Topla</button>
@@ -433,6 +432,12 @@
         let currentRotation = 1; 
         let formations = {}; 
 
+        // Fiziksel çarpışma sınırları için % olarak yarıçaplar (500px genişlik baz alındı)
+        // Oyuncu 45px -> Yarıçap 22.5px -> ~%4.5
+        // Top 30px -> Yarıçap 15px -> ~%3.0
+        const PLAYER_R = 4.5; 
+        const BALL_R = 3.0; 
+
         const defaultTeam = [
             { id: 'p1', role: 'pasor', name: 'Pasör', pos: 1, loc: 'court', x: 83.3, y: 80 },
             { id: 'p2', role: 'smacor', name: 'Smaçör<br>1', pos: 2, loc: 'court', x: 83.3, y: 20 },
@@ -463,10 +468,7 @@
                             existingPlayer.name = savedPlayer.name;
                             existingPlayer.role = savedPlayer.role;
                         } else {
-                            team.push({ 
-                                id: savedPlayer.id, role: savedPlayer.role, name: savedPlayer.name, 
-                                pos: null, loc: 'bench', x: null, y: null 
-                            });
+                            team.push({ id: savedPlayer.id, role: savedPlayer.role, name: savedPlayer.name, pos: null, loc: 'bench', x: null, y: null });
                         }
                         let idNum = parseInt(savedPlayer.id.substring(1));
                         if(idNum > maxId) maxId = idNum;
@@ -476,9 +478,8 @@
             }
 
             if (savedFormations) {
-                try {
-                    formations = JSON.parse(savedFormations);
-                } catch (e) { console.error(e); }
+                try { formations = JSON.parse(savedFormations); } 
+                catch (e) { console.error(e); }
             }
 
             currentRotation = 1;
@@ -497,26 +498,17 @@
             team.forEach(p => {
                 let idNum = parseInt(p.id.substring(1));
                 if (idNum <= 6) {
-                    p.loc = 'court';
-                    p.pos = ((idNum - 1) - (rot - 1) + 6) % 6 + 1;
-                    p.x = baseCoords[p.pos].x;
-                    p.y = baseCoords[p.pos].y;
+                    p.loc = 'court'; p.pos = ((idNum - 1) - (rot - 1) + 6) % 6 + 1;
+                    p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y;
                 } else {
-                    p.loc = 'bench';
-                    p.pos = null;
-                    p.x = null;
-                    p.y = null;
+                    p.loc = 'bench'; p.pos = null; p.x = null; p.y = null;
                 }
             });
         }
 
         function recordCurrentFormation() {
             let key = `${currentRotation}_${currentPhase}`;
-            formations[key] = {
-                players: team.map(p => ({
-                    id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y
-                }))
-            };
+            formations[key] = { players: team.map(p => ({ id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y })) };
         }
 
         function applyFormation(rot, phase) {
@@ -525,11 +517,8 @@
                 let savedF = formations[key];
                 team.forEach(p => {
                     let f = savedF.players.find(sf => sf.id === p.id);
-                    if (f) {
-                        p.loc = f.loc; p.pos = f.pos; p.x = f.x; p.y = f.y;
-                    } else {
-                        p.loc = 'bench'; p.pos = null; p.x = null; p.y = null;
-                    }
+                    if (f) { p.loc = f.loc; p.pos = f.pos; p.x = f.x; p.y = f.y; } 
+                    else { p.loc = 'bench'; p.pos = null; p.x = null; p.y = null; }
                 });
                 return true;
             }
@@ -543,11 +532,8 @@
             const cbRoster = document.getElementById('cbSaveRoster').checked;
             const cbForms = document.getElementById('cbSaveFormations').checked;
 
-            if (cbRoster) {
-                const rosterToSave = team.map(p => ({ id: p.id, role: p.role, name: p.name }));
-                localStorage.setItem('voleybolRoster', JSON.stringify(rosterToSave));
-            }
-            if (cbForms) { localStorage.setItem('voleybolFormations', JSON.stringify(formations)); }
+            if (cbRoster) localStorage.setItem('voleybolRoster', JSON.stringify(team.map(p => ({ id: p.id, role: p.role, name: p.name }))));
+            if (cbForms) localStorage.setItem('voleybolFormations', JSON.stringify(formations));
 
             closeModal('saveModal');
             const toast = document.getElementById('toast');
@@ -558,18 +544,12 @@
         function resetNamesToDefault() {
             if(confirm("Tüm isimler, kadro ve kayıtlı taktik dizilimler tamamen sıfırlanacaktır. Emin misiniz?")) {
                 team = JSON.parse(JSON.stringify(defaultTeam));
-                playerIdCounter = 8;
-                currentRotation = 1;
-                formations = {};
-                ballCoords = { x: 50, y: 50 }; 
+                playerIdCounter = 8; currentRotation = 1; formations = {}; ballCoords = { x: 50, y: 50 }; 
                 
                 localStorage.removeItem('voleybolRoster'); 
                 localStorage.removeItem('voleybolFormations'); 
                 
-                setPhase('serve_receive');
-                updateRotateButton();
-                renderAll();
-                recordCurrentFormation();
+                setPhase('serve_receive'); updateRotateButton(); renderAll(); recordCurrentFormation();
             }
         }
 
@@ -594,33 +574,22 @@
                         el.style.transition = 'none';
                         setTimeout(() => { el.style.transition = ''; }, 50);
                     }
-                    el.style.position = 'absolute';
-                    el.style.left = p.x + '%';
-                    el.style.top = p.y + '%';
+                    el.style.position = 'absolute'; el.style.left = p.x + '%'; el.style.top = p.y + '%';
                     el.style.transform = 'translate(-50%, -50%)';
                 } else {
                     if (el.parentNode !== bench) bench.appendChild(el);
-                    el.style.position = 'relative';
-                    el.style.left = 'auto';
-                    el.style.top = 'auto';
-                    el.style.transform = 'none';
+                    el.style.position = 'relative'; el.style.left = 'auto'; el.style.top = 'auto'; el.style.transform = 'none';
                 }
             });
 
             let ball = document.getElementById('volleyball');
-            if (!ball) {
-                ball = document.createElement('div');
-                ball.className = 'ball';
-                ball.id = 'volleyball';
-            }
+            if (!ball) { ball = document.createElement('div'); ball.className = 'ball'; ball.id = 'volleyball'; }
             if (ball.parentNode !== court) {
                 court.appendChild(ball);
                 ball.style.transition = 'none';
                 setTimeout(() => { ball.style.transition = ''; }, 50);
             }
-            ball.style.position = 'absolute';
-            ball.style.left = ballCoords.x + '%';
-            ball.style.top = ballCoords.y + '%';
+            ball.style.position = 'absolute'; ball.style.left = ballCoords.x + '%'; ball.style.top = ballCoords.y + '%';
             ball.style.transform = 'translate(-50%, -50%)';
         }
 
@@ -629,23 +598,17 @@
 
         function addNewPlayer() {
             let nameVal = document.getElementById('newPlayerName').value.trim();
-            if (nameVal === "") nameVal = "Yeni<br>Oyuncu";
-            else nameVal = nameVal.replace(" ", "<br>");
-            let roleVal = document.getElementById('newPlayerRole').value;
-            team.push({ id: 'p' + playerIdCounter, role: roleVal, name: nameVal, pos: null, loc: 'bench', x: null, y: null });
-            playerIdCounter++;
-            closeModal('addPlayerModal');
-            renderAll();
-            recordCurrentFormation();
+            if (nameVal === "") nameVal = "Yeni<br>Oyuncu"; else nameVal = nameVal.replace(" ", "<br>");
+            team.push({ id: 'p' + playerIdCounter, role: document.getElementById('newPlayerRole').value, name: nameVal, pos: null, loc: 'bench', x: null, y: null });
+            playerIdCounter++; closeModal('addPlayerModal'); renderAll(); recordCurrentFormation();
         }
 
         function openNameModal() {
             const container = document.getElementById('modal-inputs');
             container.innerHTML = ''; 
             team.forEach(p => {
-                let cleanName = p.name.replace(/<br>/g, " ");
                 let roleMap = { 'pasor': 'Pasör', 'smacor': 'Smaçör', 'orta': 'Orta O.', 'pasor-caprazi': 'Çapraz', 'libero': 'Libero' };
-                container.innerHTML += `<div class="modal-row" style="margin-bottom:8px;"><label>${roleMap[p.role] || 'Oyuncu'}</label><input type="text" id="input-${p.id}" value="${cleanName}"></div>`;
+                container.innerHTML += `<div class="modal-row" style="margin-bottom:8px;"><label>${roleMap[p.role] || 'Oyuncu'}</label><input type="text" id="input-${p.id}" value="${p.name.replace(/<br>/g, " ")}"></div>`;
             });
             document.getElementById('nameModal').style.display = 'flex';
         }
@@ -653,13 +616,9 @@
         function saveNames() {
             team.forEach(p => {
                 let inputEl = document.getElementById(`input-${p.id}`);
-                if (inputEl) {
-                    let inputVal = inputEl.value.trim();
-                    if (inputVal !== "") p.name = inputVal.replace(" ", "<br>");
-                }
+                if (inputEl && inputEl.value.trim() !== "") p.name = inputEl.value.trim().replace(" ", "<br>");
             });
-            closeModal('nameModal');
-            renderAll();
+            closeModal('nameModal'); renderAll();
         }
 
         function setPhase(targetPhase) {
@@ -671,8 +630,7 @@
             document.getElementById(`btn-${targetPhase}`).classList.add('active');
             
             if (!applyFormation(currentRotation, currentPhase)) { setToBaseFormation(currentRotation); }
-            renderAll(); 
-            recordCurrentFormation();
+            renderAll(); recordCurrentFormation();
         }
 
         function updateRotateButton() { document.getElementById('rotateBtn').innerText = `Döndür (Rot: ${currentRotation})`; }
@@ -682,23 +640,18 @@
             currentRotation = currentRotation === 6 ? 1 : currentRotation + 1;
             updateRotateButton();
             if (!applyFormation(currentRotation, currentPhase)) { setToBaseFormation(currentRotation); }
-            renderAll(); 
-            recordCurrentFormation(); 
+            renderAll(); recordCurrentFormation(); 
         }
 
         function resetPositions() {
             team.forEach(p => {
-                if (p.loc === 'court' && p.pos !== null) { 
-                    p.x = baseCoords[p.pos].x; 
-                    p.y = baseCoords[p.pos].y; 
-                }
+                if (p.loc === 'court' && p.pos !== null) { p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y; }
             });
-            renderAll();
-            recordCurrentFormation();
+            renderAll(); recordCurrentFormation();
         }
 
-        function getBoundsForPos(posNum) {
-            let bounds = { minX: 4, maxX: 96, minY: 4, maxY: 96 };
+        function getBoundsForPos(posNum, r) {
+            let bounds = { minX: r, maxX: 100 - r, minY: r, maxY: 100 - r };
             const getP = (pos) => team.find(p => p.pos === pos && p.loc === 'court') || {x: 50, y: 50};
             const p1 = getP(1), p2 = getP(2), p3 = getP(3), p4 = getP(4), p5 = getP(5), p6 = getP(6);
             if (posNum === 1) { bounds.minY = p2.y; bounds.minX = p6.x; }
@@ -722,8 +675,7 @@
             document.body.appendChild(draggedElement);
             draggedElement.style.position = 'fixed';
             draggedElement.style.zIndex = '1000';
-            draggedElement.style.left = clientX + 'px';
-            draggedElement.style.top = clientY + 'px';
+            draggedElement.style.left = clientX + 'px'; draggedElement.style.top = clientY + 'px';
             draggedElement.style.transform = 'translate(-50%, -50%) scale(1.15)';
         }
 
@@ -732,31 +684,28 @@
             e.preventDefault();
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            draggedElement.style.left = clientX + 'px';
-            draggedElement.style.top = clientY + 'px';
+            draggedElement.style.left = clientX + 'px'; draggedElement.style.top = clientY + 'px';
         }
 
         function handleDragEnd(e) {
             if (!draggedElement) return;
             
-            // Eğer body'deyse (sürükleniyorsa) sahanın içine geri iliştir (Kaybolmayı Önler)
-            if (draggedElement.parentNode === document.body) {
-                document.getElementById('court').appendChild(draggedElement);
-            }
+            if (draggedElement.parentNode === document.body) document.getElementById('court').appendChild(draggedElement);
             
-            let el = draggedElement;
-            el.style.transition = 'none';
+            let el = draggedElement; el.style.transition = 'none';
             setTimeout(() => { el.style.transition = ''; }, 50);
 
             const dRect = draggedElement.getBoundingClientRect();
             const dCenter = { x: dRect.left + dRect.width/2, y: dRect.top + dRect.height/2 };
             let targetPlayer = null;
+            
             document.querySelectorAll('#bench-container .player, #court .player').forEach(p => {
                 if (p.id !== draggedElement.id) {
                     const pRect = p.getBoundingClientRect();
                     if (dCenter.x >= pRect.left && dCenter.x <= pRect.right && dCenter.y >= pRect.top && dCenter.y <= pRect.bottom) targetPlayer = p;
                 }
             });
+            
             const isBall = draggedElement.id === 'volleyball';
             const draggedId = draggedElement.id;
             let swapped = false;
@@ -774,73 +723,71 @@
             
             if (!swapped) {
                 const courtRect = document.getElementById('court').getBoundingClientRect();
-                // Bırakıldığı alan saha dışında bile olsa, formülü hesaplayıp en yakın çizgiye yapıştıracağız.
                 let xPerc = ((dCenter.x - courtRect.left) / courtRect.width) * 100;
                 let yPerc = ((dCenter.y - courtRect.top) / courtRect.height) * 100;
                 
-                if (isBall) {
-                    ballCoords.x = xPerc;
-                    ballCoords.y = yPerc;
-                } else {
+                if (isBall) { ballCoords.x = xPerc; ballCoords.y = yPerc; } 
+                else {
                     let p = team.find(p => p.id === draggedId);
                     if (p && p.loc === 'court') { p.x = xPerc; p.y = yPerc; }
                 }
 
-                // EŞZAMANLI ÇARPIŞMA (COLLISION) VE SINIR (BOUND) HESAPLAYICISI
                 let courtPlayers = team.filter(p => p.loc === 'court');
                 let items = courtPlayers.map(p => ({ id: p.id, isBall: false, x: p.x, y: p.y, pos: p.pos }));
                 items.push({ id: 'volleyball', isBall: true, x: ballCoords.x, y: ballCoords.y });
 
                 let iterations = 0; let overlapping = true; 
-                while(overlapping && iterations < 8) {
+                while(overlapping && iterations < 15) { 
                     overlapping = false;
                     
-                    // 1. Adım: İçiçe geçmeyi engelle ve ittir
                     for (let i = 0; i < items.length; i++) {
                         for (let j = i + 1; j < items.length; j++) {
                             let a = items[i]; let b = items[j];
                             let dx = a.x - b.x; let dy = a.y - b.y; let dist = Math.sqrt(dx*dx + dy*dy);
                             
-                            // Top ve oyuncu için daha yakın, oyuncu-oyuncu için daha geniş çarpışma yarıçapı
-                            let minDist = (a.isBall || b.isBall) ? 9 : 12; 
+                            let rA = a.isBall ? BALL_R : PLAYER_R;
+                            let rB = b.isBall ? BALL_R : PLAYER_R;
+                            let minDist = rA + rB; 
 
                             if (dist < minDist) {
                                 overlapping = true; if (dist === 0) { dx = 1; dy = 0; dist = 1; }
-                                let push = (minDist - dist) / 2; let angle = Math.atan2(dy, dx);
-                                let pushX = Math.cos(angle) * push; let pushY = Math.sin(angle) * push;
-                                a.x += pushX; a.y += pushY; b.x -= pushX; b.y -= pushY;
+                                let overlapDist = minDist - dist;
+                                let pushA = overlapDist / 2; let pushB = overlapDist / 2;
+                                
+                                let angle = Math.atan2(dy, dx);
+                                a.x += Math.cos(angle) * pushA; a.y += Math.sin(angle) * pushA;
+                                b.x -= Math.cos(angle) * pushB; b.y -= Math.sin(angle) * pushB;
                             }
                         }
                     }
 
-                    // 2. Adım: İttirme sonrası saha dışına taşılanları sınıra (çizgiye) sabitle (Snap)
                     items.forEach(item => {
+                        let r = item.isBall ? BALL_R : PLAYER_R;
                         if (item.isBall) {
-                            item.x = Math.max(3, Math.min(item.x, 97)); // Topun sınır toleransı
-                            item.y = Math.max(3, Math.min(item.y, 97));
+                            item.x = Math.max(r, Math.min(item.x, 100 - r));
+                            item.y = Math.max(r, Math.min(item.y, 100 - r));
                         } else {
                             let isBounded = (currentPhase === 'serve_receive' || currentPhase === 'serve');
                             if (isBounded && item.pos !== null) { 
-                                let b = getBoundsForPos(item.pos); 
+                                let b = getBoundsForPos(item.pos, r); 
                                 item.x = Math.max(b.minX, Math.min(item.x, b.maxX)); 
                                 item.y = Math.max(b.minY, Math.min(item.y, b.maxY)); 
                             } else { 
-                                item.x = Math.max(4, Math.min(item.x, 96)); // Oyuncuların sınır toleransı
-                                item.y = Math.max(4, Math.min(item.y, 96)); 
+                                item.x = Math.max(r, Math.min(item.x, 100 - r));
+                                item.y = Math.max(r, Math.min(item.y, 100 - r)); 
                             }
                         }
                     });
                     iterations++;
                 }
 
-                // Hesaplanmış son (geçerli) koordinatları asıl sisteme yazdır
                 courtPlayers.forEach(p => { let it = items.find(i => i.id === p.id); p.x = it.x; p.y = it.y; });
                 let bIt = items.find(i => i.id === 'volleyball');
                 ballCoords.x = bIt.x; ballCoords.y = bIt.y;
             }
             draggedElement = null;
             renderAll();
-            if(!isBall) { recordCurrentFormation(); } // Sadece oyuncu sürüklendiğinde formasyonu kaydet
+            if(!isBall) { recordCurrentFormation(); } 
         }
 
         document.addEventListener('mousedown', handleDragStart);
