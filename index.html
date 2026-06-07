@@ -291,19 +291,17 @@
     <h3>Voleybol Taktik Tahtası</h3>
     
     <div id="top-area">
-        <!-- MOD BUTONLARI ÜSTE ALINDI -->
-        <div class="phase-row">
-            <button id="btn-serve_receive" class="phase-btn active" onclick="setPhase('serve_receive')">Servis Karşılama</button>
-            <button id="btn-serve" class="phase-btn" onclick="setPhase('serve')">Servis Kullanma</button>
-            <button id="btn-attack" class="phase-btn" onclick="setPhase('attack')">Hücum</button>
-            <button id="btn-defense" class="phase-btn" onclick="setPhase('defense')">Savunma</button>
-        </div>
-        <!-- İŞLEV BUTONLARI ALTA ALINDI -->
         <div class="top-row">
             <button id="rotateBtn" onclick="rotateTeam()">Döndür (Rot: 1)</button>
             <button onclick="resetPositions()">Topla</button>
             <button class="name-btn" onclick="openNameModal()">İsim Ver</button>
             <button class="add-btn" onclick="openAddPlayerModal()">Oyuncu Ekle</button>
+        </div>
+        <div class="phase-row">
+            <button id="btn-serve_receive" class="phase-btn active" onclick="setPhase('serve_receive')">Servis Karşılama</button>
+            <button id="btn-attack" class="phase-btn" onclick="setPhase('attack')">Hücum</button>
+            <button id="btn-defense" class="phase-btn" onclick="setPhase('defense')">Savunma</button>
+            <button id="btn-serve" class="phase-btn" onclick="setPhase('serve')">Servis Kullanma</button>
         </div>
     </div>
 
@@ -312,7 +310,6 @@
             <div id="court">
                 <div class="net-line"></div>
                 <div class="attack-line"></div>
-                <!-- Top başlangıçta sahada -->
                 <div class="ball" id="volleyball"></div>
             </div>
         </div>
@@ -607,19 +604,22 @@
                 }
             });
 
-            // Top her zaman yerinde kalacak şekilde DOM üzerinde güncelleniyor
+            // TOP KAYBOLMA SORUNU ÇÖZÜMÜ: Top her render'da güvenli şekilde sahada tutulur
             let ball = document.getElementById('volleyball');
-            if (ball) {
-                if (ball.parentNode !== court) {
-                    court.appendChild(ball);
-                    ball.style.transition = 'none';
-                    setTimeout(() => { ball.style.transition = ''; }, 50);
-                }
-                ball.style.position = 'absolute';
-                ball.style.left = ballCoords.x + '%';
-                ball.style.top = ballCoords.y + '%';
-                ball.style.transform = 'translate(-50%, -50%)';
+            if (!ball) {
+                ball = document.createElement('div');
+                ball.className = 'ball';
+                ball.id = 'volleyball';
             }
+            if (ball.parentNode !== court) {
+                court.appendChild(ball);
+                ball.style.transition = 'none';
+                setTimeout(() => { ball.style.transition = ''; }, 50);
+            }
+            ball.style.position = 'absolute';
+            ball.style.left = ballCoords.x + '%';
+            ball.style.top = ballCoords.y + '%';
+            ball.style.transform = 'translate(-50%, -50%)';
         }
 
         function closeModal(modalId) {
@@ -754,6 +754,11 @@
         function handleDragEnd(e) {
             if (!draggedElement) return;
             
+            // Sürüklenen elementi domdan silmeden önce court içine alıyoruz ki kaybolmasın
+            if (draggedElement.parentNode === document.body) {
+                document.getElementById('court').appendChild(draggedElement);
+            }
+            
             let el = draggedElement;
             el.style.transition = 'none';
             setTimeout(() => { el.style.transition = ''; }, 50);
@@ -823,11 +828,10 @@
                     }
                 }
             }
-            if (draggedElement.parentNode === document.body) document.body.removeChild(draggedElement);
             draggedElement = null;
             
             renderAll();
-            if(!isBall) { // Eğer sürüklenen sadece top ise rotasyonu hafızaya yazmaya gerek yok.
+            if(!isBall) { 
                 recordCurrentFormation(); 
             }
         }
