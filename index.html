@@ -923,7 +923,7 @@
             isSlingshotMode = false;
             document.getElementById('trajectory-svg').style.display = 'none';
             draggedElement.classList.remove('slingshot-active');
-
+	    if (navigator.vibrate) { navigator.vibrate(20); }
             let dist = Math.sqrt((slingshotTarget.x - ballCoords.x)**2 + (slingshotTarget.y - ballCoords.y)**2);
             
             if (dist < 3) {
@@ -976,6 +976,9 @@
                     draggedElement.classList.add('slingshot-active');
                     document.getElementById('trajectory-svg').style.display = 'block';
                     updateTrajectory(clientX, clientY);
+
+		    if (navigator.vibrate) {navigator.vibrate(40);}
+
                 }, 800);
             }
         }
