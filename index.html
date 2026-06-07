@@ -148,6 +148,8 @@
             position: relative;
             border: 2px solid white;
             box-sizing: border-box;
+            /* Taşan animasyonların görünmesi için */
+            overflow: visible; 
         }
 
         .net-line { position: absolute; top: 0; left: 0; width: 100%; height: 5px; background-color: #333; z-index: 1; }
@@ -160,6 +162,7 @@
             gap: 10px;
             margin-top: 15px;
             align-items: stretch;
+            z-index: 5;
         }
 
         #bench-container {
@@ -176,6 +179,7 @@
             padding: 12px 15px;
             border: 2px dashed #95a5a6;
             box-sizing: border-box;
+            position: relative;
         }
 
         #bench-title {
@@ -240,7 +244,7 @@
             padding: 2px;
             box-sizing: border-box;
             flex-shrink: 0; 
-            transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s ease;
+            transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
         }
 
         .ball {
@@ -514,6 +518,7 @@
         let dragStartX = 0;
         let dragStartY = 0;
         let dragStarted = false;
+        let isAnimating = false; 
 
         let holdTimer = null;
         let isSlingshotMode = false;
@@ -596,6 +601,32 @@
             });
         }
 
+        // BİR ÖNCEKİ ROTASYONDAN KADROYU VE DURUMU DEVİR ALMA MANTIĞI
+        function generateFromPreviousRotation(rot, phase) {
+            let prevRot = rot === 1 ? 6 : rot - 1;
+            let prevKey = `${prevRot}_${phase}`;
+            
+            if (formations[prevKey]) {
+                let prevFormation = formations[prevKey].players;
+                team.forEach(p => {
+                    let prevP = prevFormation.find(f => f.id === p.id);
+                    if (prevP && prevP.loc === 'court' && prevP.pos !== null) {
+                        p.loc = 'court';
+                        p.pos = prevP.pos === 1 ? 6 : prevP.pos - 1;
+                        p.x = baseCoords[p.pos].x;
+                        p.y = baseCoords[p.pos].y;
+                    } else {
+                        p.loc = 'bench';
+                        p.pos = null;
+                        p.x = null;
+                        p.y = null;
+                    }
+                });
+                return true;
+            }
+            return false;
+        }
+
         function recordCurrentFormation() {
             let key = `${currentRotation}_${currentPhase}`;
             formations[key] = { players: team.map(p => ({ id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y })) };
@@ -622,7 +653,7 @@
             setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => { toast.innerText = "✅ Kaydedildi!"; }, 300); }, 2000);
         }
 
-        // PAYLAŞIM VE YÜKLEME SİSTEMİ FONKSİYONLARI (YENİ)
+        // PAYLAŞIM VE YÜKLEME FONKSİYONLARI
         function getLiveShareCode() {
             recordCurrentFormation(); 
             const liveData = {
@@ -642,7 +673,7 @@
 
         function openSaveModal() { 
             document.getElementById('saveModal').style.display = 'flex'; 
-            document.getElementById('shareCodeInput').value = getLiveShareCode(); // Modal açılınca canlı kodu bas
+            document.getElementById('shareCodeInput').value = getLiveShareCode(); 
         }
         
         function openLoadModal() {
@@ -660,13 +691,13 @@
                     localStorage.setItem('voleybolRoster', JSON.stringify(data.r));
                     localStorage.setItem('voleybolFormations', JSON.stringify(data.f));
                     closeModal('loadModal');
-                    showToast("🚀 Taktik Koddan Başarıyla Yüklendi!");
+                    showToast("🚀 Taktik Başarıyla Yüklendi!");
                     setTimeout(() => { location.reload(); }, 1000); 
                 } else {
                     alert("Hatalı kod yapısı! Kod eksik veya bozuk.");
                 }
             } catch(e) {
-                alert("Kod çözülemedi! Lütfen geçerli bir taktik kodu kopyaladığınızdan emin olun.");
+                alert("Kod çözülemedi! Geçerli bir taktik kodu kopyaladığınızdan emin olun.");
             }
         }
 
@@ -787,26 +818,182 @@
             closeModal('nameModal'); renderAll();
         }
 
-        function setPhase(targetPhase) {
-            if(currentPhase === targetPhase) return;
+        // --- DEVLET GEÇİŞİ (ANIMASYON VE JUMPER KONTROLÜ) YENİ MANTIK ---
+        function transitionToState(targetRot, targetPhase) {
+            if (isAnimating) return; 
+            
             recordCurrentFormation(); 
+            let oldTeam = JSON.parse(JSON.stringify(team));
+            let oldRot = currentRotation;
+            
+            currentRotation = targetRot;
             currentPhase = targetPhase;
+            updateRotateButton();
             
             document.querySelectorAll('.phase-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${targetPhase}`).classList.add('active');
+
+            if (!applyFormation(currentRotation, currentPhase)) { 
+                if (!generateFromPreviousRotation(currentRotation, currentPhase)) {
+                    setToBaseFormation(currentRotation); 
+                }
+            }
             
-            if (!applyFormation(currentRotation, currentPhase)) { setToBaseFormation(currentRotation); }
-            renderAll(); recordCurrentFormation();
+            let newTeam = team;
+            let diff = targetRot - oldRot;
+            if (diff < 0) diff += 6;
+
+            let normalSubOut = [];
+            let normalSubIn = [];
+            let jumpers = []; 
+            
+            newTeam.forEach(newP => {
+                let oldP = oldTeam.find(o => o.id === newP.id);
+                if (oldP.loc === 'court' && newP.loc === 'bench') {
+                    normalSubOut.push(oldP);
+                } else if (oldP.loc === 'bench' && newP.loc === 'court') {
+                    normalSubIn.push(newP);
+                } else if (oldP.loc === 'court' && newP.loc === 'court') {
+                    let expectedPos = oldP.pos !== null ? ((oldP.pos - 1 - diff + 6) % 6) + 1 : null;
+                    if (expectedPos !== null && newP.pos !== expectedPos) {
+                        jumpers.push({old: oldP, new: newP});
+                    }
+                }
+            });
+
+            let subOutList = [];
+            let subInList = [];
+
+            if (jumpers.length > 0 && normalSubOut.length > 0 && normalSubIn.length > 0) {
+                // Sıçrayan oyuncuyu önce çıkar, asıl adamı al. Sonra normal çıkanı çıkar, sıçrayanı geri al
+                subOutList = [...jumpers.map(j => j.old), ...normalSubOut];
+                subInList = [...normalSubIn, ...jumpers.map(j => j.new)];
+            } else {
+                subOutList = normalSubOut;
+                subInList = normalSubIn;
+                jumpers = []; 
+            }
+
+            if (subOutList.length > 0 || subInList.length > 0) {
+                isAnimating = true;
+                
+                // 1. AŞAMA: ROTASYON KAYMASI (Değişiklikten hemen önce herkes yeni asıl yerlerine kaysın)
+                newTeam.forEach(p => {
+                    let oldP = oldTeam.find(o => o.id === p.id);
+                    let isJumper = jumpers.some(j => j.old.id === p.id);
+                    // Sadece sahada kalan normal oyuncular direkt yerlerine gider
+                    if (p.loc === 'court' && oldP.loc === 'court' && !isJumper) {
+                        let el = document.getElementById(p.id);
+                        if (el) { el.style.left = p.x + '%'; el.style.top = p.y + '%'; }
+                    }
+                });
+
+                // Çıkacak olan oyuncular da sahadan uçmadan evvel, rotasyonun onları getirmesi gereken gerçek konuma kaysın
+                subOutList.forEach(outP => {
+                    if (diff !== 0) {
+                        let expectedPos = outP.pos !== null ? ((outP.pos - 1 - diff + 6) % 6) + 1 : null;
+                        if (expectedPos !== null) {
+                            let fakeX = baseCoords[expectedPos].x;
+                            let fakeY = baseCoords[expectedPos].y;
+                            let el = document.getElementById(outP.id);
+                            if (el) { el.style.left = fakeX + '%'; el.style.top = fakeY + '%'; }
+                        }
+                    }
+                });
+
+                // 2. AŞAMA: 400ms BEKLEME (Kayma tamamlansın), sonra DEĞİŞİKLİK UÇUŞU
+                setTimeout(() => {
+                    animateSubstitutions(subOutList, subInList, () => {
+                        renderAll(); 
+                        recordCurrentFormation();
+                        isAnimating = false;
+                    });
+                }, diff !== 0 ? 400 : 0); // Sadece rotasyon geçişiyse (diff!=0) bu bekleme yaşanır
+                
+            } else {
+                renderAll(); 
+                recordCurrentFormation();
+            }
         }
 
-        function updateRotateButton() { document.getElementById('rotateBtn').innerText = `Döndür (Rot: ${currentRotation})`; }
+        // --- SIRALI OYUNCU DEĞİŞİKLİĞİ ANİMASYONU ---
+        function animateSubstitutions(subOut, subIn, callback) {
+            let i = 0;
+            let court = document.getElementById('court');
+            let bench = document.getElementById('bench-container');
 
+            function nextSub() {
+                if (i >= subOut.length && i >= subIn.length) {
+                    if (callback) callback();
+                    return;
+                }
+
+                let outId = subOut[i] ? subOut[i].id : null;
+                let inId = subIn[i] ? subIn[i].id : null;
+
+                // 1. Çıkan oyuncu kulübeye doğru uçar
+                if (outId) {
+                    let el = document.getElementById(outId);
+                    if (el) {
+                        el.style.left = '50%';
+                        el.style.top = '130%'; // Sahanın altına (kulübeye) doğru hareket
+                        el.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                    }
+                }
+
+                setTimeout(() => {
+                    // Çıkan oyuncuyu resmen kulübeye oturt
+                    if (outId) {
+                        let el = document.getElementById(outId);
+                        if (el) {
+                            bench.appendChild(el);
+                            el.style.position = 'relative'; 
+                            el.style.left = 'auto'; 
+                            el.style.top = 'auto'; 
+                            el.style.transform = 'none';
+                        }
+                    }
+
+                    // 2. Giren oyuncu kulübeden sahaya uçar
+                    if (inId) {
+                        let el = document.getElementById(inId);
+                        if (el) {
+                            court.appendChild(el);
+                            el.style.position = 'absolute';
+                            el.style.left = '50%';
+                            el.style.top = '130%';
+                            el.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                            
+                            el.getBoundingClientRect(); // Animasyonu tetiklemek için reflow
+                            
+                            let target = team.find(p => p.id === inId);
+                            if (target) {
+                                el.style.left = target.x + '%';
+                                el.style.top = target.y + '%';
+                                el.style.transform = 'translate(-50%, -50%) scale(1)';
+                            }
+                        }
+                        // Giren oyuncunun sahaya uçuşunu bekle ve sıradaki çifte geç
+                        setTimeout(nextSub, 400); 
+                    } else {
+                        nextSub(); 
+                    }
+                }, outId ? 400 : 0); // Çıkacak oyuncu varsa onun inişini bekle
+                
+                i++;
+            }
+            
+            nextSub();
+        }
+
+        // MENÜ BUTONLARI
+        function setPhase(targetPhase) { transitionToState(currentRotation, targetPhase); }
+        
+        function updateRotateButton() { document.getElementById('rotateBtn').innerText = `Döndür (Rot: ${currentRotation})`; }
+        
         function rotateTeam() {
-            recordCurrentFormation(); 
-            currentRotation = currentRotation === 6 ? 1 : currentRotation + 1;
-            updateRotateButton();
-            if (!applyFormation(currentRotation, currentPhase)) { setToBaseFormation(currentRotation); }
-            renderAll(); recordCurrentFormation(); 
+            let nextRot = currentRotation === 6 ? 1 : currentRotation + 1;
+            transitionToState(nextRot, currentPhase);
         }
 
         function resetPositions() {
@@ -923,7 +1110,9 @@
             isSlingshotMode = false;
             document.getElementById('trajectory-svg').style.display = 'none';
             draggedElement.classList.remove('slingshot-active');
-	    if (navigator.vibrate) { navigator.vibrate(20); }
+
+            if (navigator.vibrate) { navigator.vibrate(20); }
+
             let dist = Math.sqrt((slingshotTarget.x - ballCoords.x)**2 + (slingshotTarget.y - ballCoords.y)**2);
             
             if (dist < 3) {
@@ -954,6 +1143,7 @@
         }
 
         function handleDragStart(e) {
+            if (isAnimating) return; 
             const target = e.target.closest('.player, .ball');
             if (!target) return;
             e.preventDefault();
@@ -976,9 +1166,8 @@
                     draggedElement.classList.add('slingshot-active');
                     document.getElementById('trajectory-svg').style.display = 'block';
                     updateTrajectory(clientX, clientY);
-
-		    if (navigator.vibrate) {navigator.vibrate(40);}
-
+                    
+                    if (navigator.vibrate) { navigator.vibrate(40); }
                 }, 800);
             }
         }
@@ -1053,11 +1242,28 @@
             if (targetPlayer && !isBall) {
                 let p1 = team.find(p => p.id === draggedId);
                 let p2 = team.find(p => p.id === targetPlayer.id);
+                
                 if ((p1.loc === 'bench' && p2.loc === 'court') || (p1.loc === 'court' && p2.loc === 'bench')) {
                     let tempLoc = p1.loc; let tempPos = p1.pos; let tempX = p1.x; let tempY = p1.y;
                     p1.loc = p2.loc; p1.pos = p2.pos; p1.x = p2.x; p1.y = p2.y;
                     p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
                     swapped = true;
+
+                    const phases = ['serve_receive', 'attack', 'defense', 'serve'];
+                    phases.forEach(ph => {
+                        if (ph !== currentPhase) {
+                            let key = `${currentRotation}_${ph}`;
+                            if (formations[key]) {
+                                let f1 = formations[key].players.find(p => p.id === p1.id);
+                                let f2 = formations[key].players.find(p => p.id === p2.id);
+                                if (f1 && f2 && ((f1.loc === 'bench' && f2.loc === 'court') || (f1.loc === 'court' && f2.loc === 'bench'))) {
+                                    let tLoc = f1.loc; let tPos = f1.pos; let tX = f1.x; let tY = f1.y;
+                                    f1.loc = f2.loc; f1.pos = f2.pos; f1.x = f2.x; f1.y = f2.y;
+                                    f2.loc = tLoc; f2.pos = tPos; f2.x = tX; f2.y = tY;
+                                }
+                            }
+                        }
+                    });
                 }
             } 
             
