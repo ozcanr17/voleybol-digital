@@ -26,6 +26,7 @@
         /* Üst Panel */
         #top-area {
             display: flex;
+            flex-direction: column;
             width: 100%;
             max-width: 500px;
             gap: 10px;
@@ -34,12 +35,19 @@
             justify-content: center;
         }
 
-        .controls {
+        .top-row {
             display: flex;
             flex-wrap: wrap;
             gap: 6px;
             width: 100%;
             justify-content: center;
+        }
+
+        .phase-row {
+            display: flex;
+            width: 100%;
+            gap: 4px;
+            justify-content: space-between;
         }
 
         button {
@@ -55,14 +63,33 @@
         }
         button:hover { background-color: #1a252f; }
         
-        .phase-toggle { background-color: #e67e22; }
-        .phase-toggle.active { background-color: #27ae60; }
-        
         .name-btn { background-color: #8e44ad; }
         .name-btn:hover { background-color: #732d91; }
 
         .add-btn { background-color: #34495e; }
         .add-btn:hover { background-color: #2c3e50; }
+
+        /* Faz Butonları */
+        .phase-btn {
+            flex: 1;
+            padding: 8px 2px;
+            font-size: 10.5px;
+            background-color: #7f8c8d;
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, transform 0.2s;
+            text-align: center;
+            line-height: 1.2;
+            word-wrap: break-word;
+        }
+        .phase-btn.active {
+            background-color: #27ae60;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(39, 174, 96, 0.4);
+            z-index: 2;
+        }
 
         /* Ana Alan */
         #main-area {
@@ -108,7 +135,6 @@
             align-items: stretch;
         }
 
-        /* Estetik Yedek Kulübesi */
         #bench-container {
             flex-grow: 1;
             min-height: 75px;
@@ -137,7 +163,7 @@
             line-height: 1.3;
         }
 
-        /* Yan Butonlar (Kaydet & Sıfırla) */
+        /* Yan Butonlar */
         #side-buttons {
             display: flex;
             flex-direction: column;
@@ -163,6 +189,7 @@
         .btn-delete-icon { background-color: #c0392b; }
         .btn-delete-icon:hover { background-color: #e74c3c; }
 
+        /* OYUNCU VE TOP SINIFLARI */
         .player {
             width: 45px;
             height: 45px;
@@ -184,6 +211,7 @@
             padding: 2px;
             box-sizing: border-box;
             flex-shrink: 0; 
+            transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s ease;
         }
 
         .ball {
@@ -199,6 +227,7 @@
             cursor: grab;
             z-index: 11;
             filter: drop-shadow(0px 4px 5px rgba(0,0,0,0.5));
+            transition: left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), transform 0.2s ease;
         }
 
         .role-pasor { background-color: #3498db; }
@@ -263,18 +292,27 @@
     <h3>Voleybol Taktik Tahtası</h3>
     
     <div id="top-area">
-        <div class="controls">
+        <div class="top-row">
             <button id="rotateBtn" onclick="rotateTeam()">Döndür (Rot: 1)</button>
             <button onclick="resetPositions()">Topla</button>
-            <button id="phaseBtn" class="phase-toggle" onclick="togglePhase()">Mod: Servis</button>
             <button class="name-btn" onclick="openNameModal()">İsim Ver</button>
-            <button class="add-btn" onclick="openAddPlayerModal()">Oyuncu Ekle</button>
+            <button class="add-btn" onclick="openAddPlayerModal()">+ Oyuncu</button>
+        </div>
+        <div class="phase-row">
+            <button id="btn-serve_receive" class="phase-btn active" onclick="setPhase('serve_receive')">Servis Karşılama</button>
+            <button id="btn-serve" class="phase-btn" onclick="setPhase('serve')">Servis Kullanma</button>
+            <button id="btn-attack" class="phase-btn" onclick="setPhase('attack')">Hücum</button>
+            <button id="btn-defense" class="phase-btn" onclick="setPhase('defense')">Savunma</button>
         </div>
     </div>
 
     <div id="main-area">
         <div id="court-container">
-            <div id="court"></div>
+            <div id="court">
+                <div class="net-line"></div>
+                <div class="attack-line"></div>
+                <div class="ball" id="volleyball"></div>
+            </div>
         </div>
         
         <div id="bench-wrapper">
@@ -368,7 +406,8 @@
         });
 
         let draggedElement = null;
-        let rulesActive = true;
+        
+        let currentPhase = 'serve_receive'; // 'serve_receive', 'serve', 'attack', 'defense'
         let ballCoords = { x: 50, y: 50 }; 
         let playerIdCounter = 8; 
         
@@ -430,10 +469,10 @@
             }
 
             currentRotation = 1;
-            rulesActive = true;
+            currentPhase = 'serve_receive';
             updateRotateButton();
 
-            if (!applyFormation(currentRotation, rulesActive)) {
+            if (!applyFormation(currentRotation, currentPhase)) {
                 setToBaseFormation(currentRotation);
             }
             
@@ -441,7 +480,6 @@
             recordCurrentFormation(); 
         });
 
-        // Oyuncuları bulunulan rotasyonun matematiksel nizami ilk konumlarına (Base) çeker
         function setToBaseFormation(rot) {
             team.forEach(p => {
                 let idNum = parseInt(p.id.substring(1));
@@ -461,7 +499,7 @@
         }
 
         function recordCurrentFormation() {
-            let key = `${currentRotation}_${rulesActive}`;
+            let key = `${currentRotation}_${currentPhase}`;
             formations[key] = {
                 players: team.map(p => ({
                     id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y
@@ -527,11 +565,7 @@
                 localStorage.removeItem('voleybolRoster'); 
                 localStorage.removeItem('voleybolFormations'); 
                 
-                rulesActive = true;
-                const phaseBtn = document.getElementById('phaseBtn');
-                phaseBtn.innerText = "Mod: Servis"; 
-                phaseBtn.style.backgroundColor = "#e67e22";
-                
+                setPhase('serve_receive');
                 updateRotateButton();
                 renderAll();
                 recordCurrentFormation();
@@ -542,35 +576,51 @@
             const court = document.getElementById('court');
             const bench = document.getElementById('bench-container');
             
-            court.innerHTML = '<div class="net-line"></div><div class="attack-line"></div>';
-            bench.innerHTML = '<div id="bench-title">YEDEK KULÜBESİ<br><span style="font-size: 8.5px; font-weight: normal; color: #7f8c8d;">(Sürükleyip Değiştir)</span></div>';
+            document.querySelectorAll('.player').forEach(el => {
+                if (!team.find(p => p.id === el.id)) el.remove();
+            });
 
             team.forEach(p => {
-                let div = document.createElement('div');
-                div.className = `player role-${p.role}`;
-                div.id = p.id;
-                div.innerHTML = p.name;
+                let el = document.getElementById(p.id);
+                if (!el) {
+                    el = document.createElement('div');
+                    el.id = p.id;
+                }
+                
+                el.className = `player role-${p.role}`;
+                el.innerHTML = p.name;
                 
                 if (p.loc === 'court') {
-                    div.style.position = 'absolute';
-                    div.style.left = p.x + '%';
-                    div.style.top = p.y + '%';
-                    div.style.transform = 'translate(-50%, -50%)';
-                    court.appendChild(div);
+                    if (el.parentNode !== court) {
+                        court.appendChild(el);
+                        el.style.transition = 'none';
+                        setTimeout(() => { el.style.transition = ''; }, 50);
+                    }
+                    el.style.position = 'absolute';
+                    el.style.left = p.x + '%';
+                    el.style.top = p.y + '%';
+                    el.style.transform = 'translate(-50%, -50%)';
                 } else {
-                    div.style.position = 'relative';
-                    bench.appendChild(div);
+                    if (el.parentNode !== bench) bench.appendChild(el);
+                    el.style.position = 'relative';
+                    el.style.left = 'auto';
+                    el.style.top = 'auto';
+                    el.style.transform = 'none';
                 }
             });
 
-            let ball = document.createElement('div');
-            ball.className = 'ball';
-            ball.id = 'volleyball';
-            ball.style.position = 'absolute';
-            ball.style.left = ballCoords.x + '%';
-            ball.style.top = ballCoords.y + '%';
-            ball.style.transform = 'translate(-50%, -50%)';
-            court.appendChild(ball);
+            let ball = document.getElementById('volleyball');
+            if (ball) {
+                if (ball.parentNode !== court) {
+                    court.appendChild(ball);
+                    ball.style.transition = 'none';
+                    setTimeout(() => { ball.style.transition = ''; }, 50);
+                }
+                ball.style.position = 'absolute';
+                ball.style.left = ballCoords.x + '%';
+                ball.style.top = ballCoords.y + '%';
+                ball.style.transform = 'translate(-50%, -50%)';
+            }
         }
 
         function closeModal(modalId) {
@@ -617,24 +667,21 @@
             renderAll();
         }
 
-        function togglePhase() {
+        // 4'LÜ MOD DEĞİŞİM FONKSİYONU
+        function setPhase(targetPhase) {
+            if(currentPhase === targetPhase) return; // Zaten o moddaysa bir şey yapma
+            
             recordCurrentFormation(); 
-            rulesActive = !rulesActive;
-            const phaseBtn = document.getElementById('phaseBtn');
+            currentPhase = targetPhase;
             
-            if(rulesActive) { 
-                phaseBtn.innerText = "Mod: Servis"; 
-                phaseBtn.style.backgroundColor = "#e67e22"; 
-            } else { 
-                phaseBtn.innerText = "Mod: Oyun İçi"; 
-                phaseBtn.style.backgroundColor = "#27ae60"; 
-            }
+            // Butonların görselini güncelle
+            document.querySelectorAll('.phase-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${targetPhase}`).classList.add('active');
             
-            // Eğer yeni geçilen modda önceden bir kayıt YOKSA, miras almak yerine base pozisyona çek
-            if (!applyFormation(currentRotation, rulesActive)) {
+            if (!applyFormation(currentRotation, currentPhase)) {
                 setToBaseFormation(currentRotation);
             }
-            renderAll();
+            renderAll(); 
             recordCurrentFormation();
         }
 
@@ -648,11 +695,10 @@
             currentRotation = currentRotation === 6 ? 1 : currentRotation + 1;
             updateRotateButton();
             
-            // Eğer yeni rotasyon+mod ikilisinde önceden bir kayıt YOKSA base pozisyonunu hesapla
-            if (!applyFormation(currentRotation, rulesActive)) {
+            if (!applyFormation(currentRotation, currentPhase)) {
                 setToBaseFormation(currentRotation);
             }
-            renderAll();
+            renderAll(); 
             recordCurrentFormation(); 
         }
 
@@ -686,6 +732,9 @@
             if (!target) return;
             e.preventDefault();
             draggedElement = target;
+            
+            draggedElement.style.transition = 'none'; 
+            
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             document.body.appendChild(draggedElement);
@@ -707,6 +756,11 @@
 
         function handleDragEnd(e) {
             if (!draggedElement) return;
+            
+            let el = draggedElement;
+            el.style.transition = 'none';
+            setTimeout(() => { el.style.transition = ''; }, 50);
+
             const dRect = draggedElement.getBoundingClientRect();
             const dCenter = { x: dRect.left + dRect.width/2, y: dRect.top + dRect.height/2 };
             let targetPlayer = null;
@@ -757,7 +811,11 @@
                                 });
                                 iterations++;
                             }
-                            if (rulesActive) { 
+                            
+                            // KURALLAR: Servis karşılama ve kullanma anında kurallar geçerlidir, diğer modlarda serbesttir.
+                            let isBounded = (currentPhase === 'serve_receive' || currentPhase === 'serve');
+                            
+                            if (isBounded) { 
                                 let bounds = getBoundsForPos(p.pos); 
                                 xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX)); 
                                 yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY)); 
