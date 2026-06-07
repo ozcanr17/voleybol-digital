@@ -264,11 +264,11 @@
     
     <div id="top-area">
         <div class="controls">
-            <button onclick="rotateTeam()">Döndür</button>
+            <button id="rotateBtn" onclick="rotateTeam()">Döndür (Rot: 1)</button>
             <button onclick="resetPositions()">Topla</button>
-            <button id="phaseBtn" class="phase-toggle" onclick="togglePhase()">Mod: Servis/Manşet</button>
+            <button id="phaseBtn" class="phase-toggle" onclick="togglePhase()">Mod: Servis</button>
             <button class="name-btn" onclick="openNameModal()">İsim Ver</button>
-            <button class="add-btn" onclick="openAddPlayerModal()">+ Oyuncu</button>
+            <button class="add-btn" onclick="openAddPlayerModal()">Oyuncu Ekle</button>
         </div>
     </div>
 
@@ -283,7 +283,7 @@
             </div>
             
             <div id="side-buttons">
-                <button class="icon-btn btn-save-icon" onclick="saveToMemory()" title="Kadroyu Cihaza Kaydet">
+                <button class="icon-btn btn-save-icon" onclick="openSaveModal()" title="Kadroyu ve Dizilimi Kaydet">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
                         <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -291,7 +291,7 @@
                     </svg>
                 </button>
                 
-                <button class="icon-btn btn-delete-icon" onclick="resetNamesToDefault()" title="Kadroyu Sıfırla">
+                <button class="icon-btn btn-delete-icon" onclick="resetNamesToDefault()" title="Her Şeyi Sıfırla">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="3 6 5 6 21 6"></polyline>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -305,12 +305,30 @@
 
     <div id="toast">✅ Kaydedildi!</div>
 
+    <div id="saveModal" class="modal-overlay">
+        <div class="modal-box">
+            <h4>Kaydet Seçenekleri</h4>
+            <div class="modal-row" style="justify-content: flex-start; gap: 10px; margin-bottom: 5px;">
+                <input type="checkbox" id="cbSaveRoster" checked>
+                <label for="cbSaveRoster" style="width: auto; cursor: pointer; font-weight: normal;">Kadroyu Kaydet (İsimler ve Roller)</label>
+            </div>
+            <div class="modal-row" style="justify-content: flex-start; gap: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="cbSaveFormations" checked>
+                <label for="cbSaveFormations" style="width: auto; cursor: pointer; font-weight: normal;">Dizilimi Kaydet (Konumlar ve Top)</label>
+            </div>
+            <div class="modal-buttons-wrapper">
+                <button class="btn-cancel" onclick="closeModal('saveModal')">İptal</button>
+                <button class="btn-save" onclick="executeSave()">Kaydet</button>
+            </div>
+        </div>
+    </div>
+
     <div id="nameModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Takım Kadrosu</h4>
             <div id="modal-inputs" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
             <div class="modal-buttons-wrapper">
-                <button class="btn-cancel" onclick="closeModal('nameModal')">İptal</button>
+                <button class="btn-cancel" onclick="closeModal('nameModal')">Kapat</button>
                 <button class="btn-save" onclick="saveNames()">Kaydet</button>
             </div>
         </div>
@@ -353,6 +371,9 @@
         let rulesActive = true;
         let ballCoords = { x: 50, y: 50 }; 
         let playerIdCounter = 8; 
+        
+        let currentRotation = 1; 
+        let formations = {}; 
 
         const defaultTeam = [
             { id: 'p1', role: 'pasor', name: 'Pasör', pos: 1, loc: 'court', x: 83.3, y: 80 },
@@ -371,73 +392,151 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
-    const savedTeam = localStorage.getItem('voleybolTeam');
-    if (savedTeam) {
-        try {
-            // Kaydedilmiş sadece isim/rol/id verisini alıyoruz
-            const parsedRoster = JSON.parse(savedTeam);
-            let maxId = 7;
-            
-            parsedRoster.forEach(savedPlayer => {
-                let existingPlayer = team.find(p => p.id === savedPlayer.id);
-                if (existingPlayer) {
-                    existingPlayer.name = savedPlayer.name;
-                    existingPlayer.role = savedPlayer.role;
-                } else {
-                    // Yeni eklenen bir oyuncuysa yedek kulübesinde başlat
-                    team.push({ 
-                        id: savedPlayer.id, 
-                        role: savedPlayer.role, 
-                        name: savedPlayer.name, 
-                        pos: null, 
-                        loc: 'bench', 
-                        x: null, 
-                        y: null 
-                    });
-                }
-                
-                let idNum = parseInt(savedPlayer.id.substring(1));
-                if(idNum > maxId) maxId = idNum;
-            });
-            playerIdCounter = maxId + 1;
-        } catch (e) { console.error(e); }
-    }
-    renderAll();
-});
+            const oldTeamData = localStorage.getItem('voleybolTeam');
+            if (oldTeamData) {
+                localStorage.setItem('voleybolRoster', oldTeamData);
+                localStorage.removeItem('voleybolTeam');
+            }
 
-        function saveToMemory() {
-    // Sadece id, rol ve isim bilgilerini filtreleyip kaydediyoruz
-    const rosterToSave = team.map(p => ({
-        id: p.id,
-        role: p.role,
-        name: p.name
-    }));
-    localStorage.setItem('voleybolTeam', JSON.stringify(rosterToSave));
-    
-    const toast = document.getElementById('toast');
-    toast.style.opacity = '1';
-    setTimeout(() => { toast.style.opacity = '0'; }, 2000);
-}
+            const savedRoster = localStorage.getItem('voleybolRoster');
+            const savedFormations = localStorage.getItem('voleybolFormations');
+            
+            if (savedRoster) {
+                try {
+                    const parsedRoster = JSON.parse(savedRoster);
+                    let maxId = 7;
+                    parsedRoster.forEach(savedPlayer => {
+                        let existingPlayer = team.find(p => p.id === savedPlayer.id);
+                        if (existingPlayer) {
+                            existingPlayer.name = savedPlayer.name;
+                            existingPlayer.role = savedPlayer.role;
+                        } else {
+                            team.push({ 
+                                id: savedPlayer.id, role: savedPlayer.role, name: savedPlayer.name, 
+                                pos: null, loc: 'bench', x: null, y: null 
+                            });
+                        }
+                        let idNum = parseInt(savedPlayer.id.substring(1));
+                        if(idNum > maxId) maxId = idNum;
+                    });
+                    playerIdCounter = maxId + 1;
+                } catch (e) { console.error(e); }
+            }
+
+            if (savedFormations) {
+                try {
+                    formations = JSON.parse(savedFormations);
+                } catch (e) { console.error(e); }
+            }
+
+            currentRotation = 1;
+            rulesActive = true;
+            updateRotateButton();
+
+            if (!applyFormation(currentRotation, rulesActive)) {
+                setToBaseFormation(currentRotation);
+            }
+            
+            renderAll();
+            recordCurrentFormation(); 
+        });
+
+        // Oyuncuları bulunulan rotasyonun matematiksel nizami ilk konumlarına (Base) çeker
+        function setToBaseFormation(rot) {
+            team.forEach(p => {
+                let idNum = parseInt(p.id.substring(1));
+                if (idNum <= 6) {
+                    p.loc = 'court';
+                    p.pos = ((idNum - 1) - (rot - 1) + 6) % 6 + 1;
+                    p.x = baseCoords[p.pos].x;
+                    p.y = baseCoords[p.pos].y;
+                } else {
+                    p.loc = 'bench';
+                    p.pos = null;
+                    p.x = null;
+                    p.y = null;
+                }
+            });
+            ballCoords = { x: 50, y: 50 };
+        }
+
+        function recordCurrentFormation() {
+            let key = `${currentRotation}_${rulesActive}`;
+            formations[key] = {
+                players: team.map(p => ({
+                    id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y
+                })),
+                ball: { x: ballCoords.x, y: ballCoords.y }
+            };
+        }
+
+        function applyFormation(rot, phase) {
+            let key = `${rot}_${phase}`;
+            if (formations[key]) {
+                let savedF = formations[key];
+                team.forEach(p => {
+                    let f = savedF.players.find(sf => sf.id === p.id);
+                    if (f) {
+                        p.loc = f.loc; p.pos = f.pos; p.x = f.x; p.y = f.y;
+                    } else {
+                        p.loc = 'bench'; p.pos = null; p.x = null; p.y = null;
+                    }
+                });
+                if (savedF.ball) {
+                    ballCoords.x = savedF.ball.x;
+                    ballCoords.y = savedF.ball.y;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function openSaveModal() {
+            document.getElementById('saveModal').style.display = 'flex';
+        }
+
+        function executeSave() {
+            recordCurrentFormation(); 
+
+            const cbRoster = document.getElementById('cbSaveRoster').checked;
+            const cbForms = document.getElementById('cbSaveFormations').checked;
+
+            if (cbRoster) {
+                const rosterToSave = team.map(p => ({ id: p.id, role: p.role, name: p.name }));
+                localStorage.setItem('voleybolRoster', JSON.stringify(rosterToSave));
+            }
+
+            if (cbForms) {
+                localStorage.setItem('voleybolFormations', JSON.stringify(formations));
+            }
+
+            closeModal('saveModal');
+            const toast = document.getElementById('toast');
+            toast.style.opacity = '1';
+            setTimeout(() => { toast.style.opacity = '0'; }, 2000);
+        }
 
         function resetNamesToDefault() {
-    if(confirm("Tüm isimler ve eklenen oyuncular silinip kadro sıfırlanacaktır. Sahadaki pozisyonlar korunacaktır. Emin misiniz?")) {
-        // Sonradan eklenen oyuncuları (p8 ve sonrası) listeden çıkar
-        team = team.filter(p => parseInt(p.id.substring(1)) <= 7);
-        
-        // Kalan orijinal 7 oyuncunun ismini ve rolünü sıfırla, ama koordinatlarına dokunma
-        team.forEach(p => {
-            let defaultP = defaultTeam.find(dp => dp.id === p.id);
-            if (defaultP) {
-                p.name = defaultP.name;
-                p.role = defaultP.role;
+            if(confirm("Tüm isimler, kadro ve kayıtlı taktik dizilimler tamamen sıfırlanacaktır. Emin misiniz?")) {
+                team = JSON.parse(JSON.stringify(defaultTeam));
+                playerIdCounter = 8;
+                currentRotation = 1;
+                formations = {};
+                ballCoords = { x: 50, y: 50 };
+                
+                localStorage.removeItem('voleybolRoster'); 
+                localStorage.removeItem('voleybolFormations'); 
+                
+                rulesActive = true;
+                const phaseBtn = document.getElementById('phaseBtn');
+                phaseBtn.innerText = "Mod: Servis"; 
+                phaseBtn.style.backgroundColor = "#e67e22";
+                
+                updateRotateButton();
+                renderAll();
+                recordCurrentFormation();
             }
-        });
-        
-        playerIdCounter = 8;
-        localStorage.removeItem('voleybolTeam'); 
-        renderAll();
-    }
-}
+        }
 
         function renderAll() {
             const court = document.getElementById('court');
@@ -492,6 +591,7 @@
             playerIdCounter++;
             closeModal('addPlayerModal');
             renderAll();
+            recordCurrentFormation();
         }
 
         function openNameModal() {
@@ -518,24 +618,54 @@
         }
 
         function togglePhase() {
+            recordCurrentFormation(); 
             rulesActive = !rulesActive;
             const phaseBtn = document.getElementById('phaseBtn');
-            if(rulesActive) { phaseBtn.innerText = "Mod: Servis/Manşet"; phaseBtn.style.backgroundColor = "#e67e22"; resetPositions(); }
-            else { phaseBtn.innerText = "Mod: Oyun İçi (Serbest)"; phaseBtn.style.backgroundColor = "#27ae60"; }
+            
+            if(rulesActive) { 
+                phaseBtn.innerText = "Mod: Servis"; 
+                phaseBtn.style.backgroundColor = "#e67e22"; 
+            } else { 
+                phaseBtn.innerText = "Mod: Oyun İçi"; 
+                phaseBtn.style.backgroundColor = "#27ae60"; 
+            }
+            
+            // Eğer yeni geçilen modda önceden bir kayıt YOKSA, miras almak yerine base pozisyona çek
+            if (!applyFormation(currentRotation, rulesActive)) {
+                setToBaseFormation(currentRotation);
+            }
+            renderAll();
+            recordCurrentFormation();
+        }
+
+        function updateRotateButton() {
+            document.getElementById('rotateBtn').innerText = `Döndür (Rot: ${currentRotation})`;
         }
 
         function rotateTeam() {
-            team.forEach(p => {
-                if(p.loc === 'court') { p.pos = p.pos === 1 ? 6 : p.pos - 1; p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y; }
-            });
+            recordCurrentFormation(); 
+            
+            currentRotation = currentRotation === 6 ? 1 : currentRotation + 1;
+            updateRotateButton();
+            
+            // Eğer yeni rotasyon+mod ikilisinde önceden bir kayıt YOKSA base pozisyonunu hesapla
+            if (!applyFormation(currentRotation, rulesActive)) {
+                setToBaseFormation(currentRotation);
+            }
             renderAll();
+            recordCurrentFormation(); 
         }
 
         function resetPositions() {
             team.forEach(p => {
-                if (p.loc === 'court') { p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y; }
+                if (p.loc === 'court' && p.pos !== null) { 
+                    p.x = baseCoords[p.pos].x; 
+                    p.y = baseCoords[p.pos].y; 
+                }
             });
+            ballCoords = { x: 50, y: 50 };
             renderAll();
+            recordCurrentFormation();
         }
 
         function getBoundsForPos(posNum) {
@@ -589,6 +719,7 @@
             const isBall = draggedElement.id === 'volleyball';
             const draggedId = draggedElement.id;
             let swapped = false;
+            
             if (targetPlayer && !isBall) {
                 let p1 = team.find(p => p.id === draggedId);
                 let p2 = team.find(p => p.id === targetPlayer.id);
@@ -599,13 +730,16 @@
                     swapped = true;
                 }
             } 
+            
             if (!swapped) {
                 const courtRect = document.getElementById('court').getBoundingClientRect();
                 if (dCenter.x >= courtRect.left && dCenter.x <= courtRect.right && dCenter.y >= courtRect.top && dCenter.y <= courtRect.bottom) {
                     let xPerc = ((dCenter.x - courtRect.left) / courtRect.width) * 100;
                     let yPerc = ((dCenter.y - courtRect.top) / courtRect.height) * 100;
-                    if (isBall) ballCoords = { x: Math.max(0, Math.min(xPerc, 100)), y: Math.max(0, Math.min(yPerc, 100)) };
-                    else {
+                    
+                    if (isBall) {
+                        ballCoords = { x: Math.max(0, Math.min(xPerc, 100)), y: Math.max(0, Math.min(yPerc, 100)) };
+                    } else {
                         let p = team.find(p => p.id === draggedId);
                         if (p.loc === 'court') {
                             let iterations = 0; let overlapping = true; const MIN_DIST = 5.5; 
@@ -623,8 +757,13 @@
                                 });
                                 iterations++;
                             }
-                            if (rulesActive) { let bounds = getBoundsForPos(p.pos); xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX)); yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY)); }
-                            else { xPerc = Math.max(6, Math.min(xPerc, 94)); yPerc = Math.max(6, Math.min(yPerc, 94)); }
+                            if (rulesActive) { 
+                                let bounds = getBoundsForPos(p.pos); 
+                                xPerc = Math.max(bounds.minX, Math.min(xPerc, bounds.maxX)); 
+                                yPerc = Math.max(bounds.minY, Math.min(yPerc, bounds.maxY)); 
+                            } else { 
+                                xPerc = Math.max(6, Math.min(xPerc, 94)); yPerc = Math.max(6, Math.min(yPerc, 94)); 
+                            }
                             p.x = xPerc; p.y = yPerc;
                         }
                     }
@@ -632,7 +771,9 @@
             }
             if (draggedElement.parentNode === document.body) document.body.removeChild(draggedElement);
             draggedElement = null;
+            
             renderAll();
+            recordCurrentFormation(); 
         }
 
         document.addEventListener('mousedown', handleDragStart);
