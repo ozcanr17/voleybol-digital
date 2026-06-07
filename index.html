@@ -18,7 +18,11 @@
             box-sizing: border-box;
             overflow: hidden;
             touch-action: none; 
-            user-select: none;
+	    user-select: none;              /* Standard */
+            -webkit-user-select: none;      /* Safari */
+    	    -ms-user-select: none;          /* IE 10+ */ 
+    	    -webkit-touch-callout: none;    /* iOS'te uzun basınca çıkan menüyü engeller */
+    	    -webkit-tap-highlight-color: transparent; /* Basınca çıkan o mavi kutuyu engeller */
         }
 
         h3 { color: #333; margin: 5px 0 15px 0; text-align: center; font-size: 22px; }
@@ -803,6 +807,13 @@
         document.addEventListener('touchstart', handleDragStart, {passive: false});
         document.addEventListener('touchmove', handleDragMove, {passive: false});
         document.addEventListener('touchend', handleDragEnd);
+
+	window.oncontextmenu = function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        };		
+
     </script>
 </body>
 </html>
