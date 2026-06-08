@@ -603,7 +603,11 @@
 
         // BİR ÖNCEKİ ROTASYONDAN KADROYU VE DURUMU DEVİR ALMA MANTIĞI
         function generateFromPreviousRotation(rot, phase) {
-            let prevRot = rot === 1 ? 6 : rot - 1;
+            // SONSUZ DÖNGÜ KIRICI: Rotasyon 1 ASLA Rotasyon 6'dan miras devralmaz!
+            // Bu sayede 6'dan sonra başa dönüldüğünde oyuncular Fabrika Ayarına / Orijinal Rot 1'e döner.
+            if (rot === 1) return false; 
+
+            let prevRot = rot - 1;
             let prevKey = `${prevRot}_${phase}`;
             
             if (formations[prevKey]) {
@@ -836,12 +840,8 @@
             let diff = targetRot - oldRot;
             if (diff < 0) diff += 6;
 
-            // UYGULANAN YENİ MANTIK: Eğer faz (mod) daha önce kaydedilmemişse:
             if (!applyFormation(currentRotation, currentPhase)) { 
                 if (diff === 0) {
-                    // Sadece oyun modu değişti (ör. Servis -> Hücum) ve bu mod henüz kaydedilmemiş.
-                    // O zaman KADROYU KORU (yapılan değişikliği silme).
-                    // Sadece sahadaki oyuncuların fiziki x,y konumlarını o modun standart yerlerine sıfırla.
                     team.forEach(p => {
                         if (p.loc === 'court' && p.pos !== null) {
                             p.x = baseCoords[p.pos].x;
@@ -876,7 +876,6 @@
             let subInList = [];
 
             if (jumpers.length > 0 && normalSubOut.length > 0 && normalSubIn.length > 0) {
-                // Sıçrayan oyuncuyu önce çıkar, asıl adamı al. Sonra normal çıkanı çıkar, sıçrayanı geri al
                 subOutList = [...jumpers.map(j => j.old), ...normalSubOut];
                 subInList = [...normalSubIn, ...jumpers.map(j => j.new)];
             } else {
@@ -940,7 +939,6 @@
                 let outId = subOut[i] ? subOut[i].id : null;
                 let inId = subIn[i] ? subIn[i].id : null;
 
-                // 1. Çıkan oyuncu kulübeye doğru uçar
                 if (outId) {
                     let el = document.getElementById(outId);
                     if (el) {
@@ -951,7 +949,6 @@
                 }
 
                 setTimeout(() => {
-                    // Çıkan oyuncuyu resmen kulübeye oturt
                     if (outId) {
                         let el = document.getElementById(outId);
                         if (el) {
@@ -963,7 +960,6 @@
                         }
                     }
 
-                    // 2. Giren oyuncu kulübeden sahaya uçar
                     if (inId) {
                         let el = document.getElementById(inId);
                         if (el) {
@@ -982,7 +978,6 @@
                                 el.style.transform = 'translate(-50%, -50%) scale(1)';
                             }
                         }
-                        // Giren oyuncunun sahaya uçuşunu bekle ve sıradaki çifte geç
                         setTimeout(nextSub, 400); 
                     } else {
                         nextSub(); 
@@ -995,11 +990,8 @@
             nextSub();
         }
 
-        // MENÜ BUTONLARI
         function setPhase(targetPhase) { transitionToState(currentRotation, targetPhase); }
-        
         function updateRotateButton() { document.getElementById('rotateBtn').innerText = `Döndür (Rot: ${currentRotation})`; }
-        
         function rotateTeam() {
             let nextRot = currentRotation === 6 ? 1 : currentRotation + 1;
             transitionToState(nextRot, currentPhase);
@@ -1259,9 +1251,13 @@
                     swapped = true;
 
                     const phases = ['serve_receive', 'attack', 'defense', 'serve'];
-                    phases.forEach(ph => {
-                        if (ph !== currentPhase) {
-                            let key = `${currentRotation}_${ph}`;
+                    
+                    // GELECEĞE MİRAS DÖNGÜSÜ:
+                    // Değişikliği bulunduğun rotasyondan başlayıp, 6. rotasyona kadar (varsa) tüm kaydedilmiş fazlara uygular.
+                    // Böylece oyuncu değişikliği sonraki rotasyonlara da kalıcı işler. (Rotasyon 1'e dokunmaz!)
+                    for (let r = currentRotation; r <= 6; r++) {
+                        phases.forEach(ph => {
+                            let key = `${r}_${ph}`;
                             if (formations[key]) {
                                 let f1 = formations[key].players.find(p => p.id === p1.id);
                                 let f2 = formations[key].players.find(p => p.id === p2.id);
@@ -1271,8 +1267,8 @@
                                     f2.loc = tLoc; f2.pos = tPos; f2.x = tX; f2.y = tY;
                                 }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
             } 
             
