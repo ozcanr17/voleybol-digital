@@ -833,16 +833,27 @@
             document.querySelectorAll('.phase-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${targetPhase}`).classList.add('active');
 
+            let diff = targetRot - oldRot;
+            if (diff < 0) diff += 6;
+
+            // UYGULANAN YENİ MANTIK: Eğer faz (mod) daha önce kaydedilmemişse:
             if (!applyFormation(currentRotation, currentPhase)) { 
-                if (!generateFromPreviousRotation(currentRotation, currentPhase)) {
+                if (diff === 0) {
+                    // Sadece oyun modu değişti (ör. Servis -> Hücum) ve bu mod henüz kaydedilmemiş.
+                    // O zaman KADROYU KORU (yapılan değişikliği silme).
+                    // Sadece sahadaki oyuncuların fiziki x,y konumlarını o modun standart yerlerine sıfırla.
+                    team.forEach(p => {
+                        if (p.loc === 'court' && p.pos !== null) {
+                            p.x = baseCoords[p.pos].x;
+                            p.y = baseCoords[p.pos].y;
+                        }
+                    });
+                } else if (!generateFromPreviousRotation(currentRotation, currentPhase)) {
                     setToBaseFormation(currentRotation); 
                 }
             }
             
             let newTeam = team;
-            let diff = targetRot - oldRot;
-            if (diff < 0) diff += 6;
-
             let normalSubOut = [];
             let normalSubIn = [];
             let jumpers = []; 
@@ -877,18 +888,16 @@
             if (subOutList.length > 0 || subInList.length > 0) {
                 isAnimating = true;
                 
-                // 1. AŞAMA: ROTASYON KAYMASI (Değişiklikten hemen önce herkes yeni asıl yerlerine kaysın)
+                // 1. AŞAMA: ROTASYON KAYMASI
                 newTeam.forEach(p => {
                     let oldP = oldTeam.find(o => o.id === p.id);
                     let isJumper = jumpers.some(j => j.old.id === p.id);
-                    // Sadece sahada kalan normal oyuncular direkt yerlerine gider
                     if (p.loc === 'court' && oldP.loc === 'court' && !isJumper) {
                         let el = document.getElementById(p.id);
                         if (el) { el.style.left = p.x + '%'; el.style.top = p.y + '%'; }
                     }
                 });
 
-                // Çıkacak olan oyuncular da sahadan uçmadan evvel, rotasyonun onları getirmesi gereken gerçek konuma kaysın
                 subOutList.forEach(outP => {
                     if (diff !== 0) {
                         let expectedPos = outP.pos !== null ? ((outP.pos - 1 - diff + 6) % 6) + 1 : null;
@@ -901,14 +910,14 @@
                     }
                 });
 
-                // 2. AŞAMA: 400ms BEKLEME (Kayma tamamlansın), sonra DEĞİŞİKLİK UÇUŞU
+                // 2. AŞAMA: DEĞİŞİKLİK UÇUŞU
                 setTimeout(() => {
                     animateSubstitutions(subOutList, subInList, () => {
                         renderAll(); 
                         recordCurrentFormation();
                         isAnimating = false;
                     });
-                }, diff !== 0 ? 400 : 0); // Sadece rotasyon geçişiyse (diff!=0) bu bekleme yaşanır
+                }, diff !== 0 ? 400 : 0); 
                 
             } else {
                 renderAll(); 
@@ -936,7 +945,7 @@
                     let el = document.getElementById(outId);
                     if (el) {
                         el.style.left = '50%';
-                        el.style.top = '130%'; // Sahanın altına (kulübeye) doğru hareket
+                        el.style.top = '130%'; 
                         el.style.transform = 'translate(-50%, -50%) scale(0.8)';
                     }
                 }
@@ -964,7 +973,7 @@
                             el.style.top = '130%';
                             el.style.transform = 'translate(-50%, -50%) scale(0.8)';
                             
-                            el.getBoundingClientRect(); // Animasyonu tetiklemek için reflow
+                            el.getBoundingClientRect(); 
                             
                             let target = team.find(p => p.id === inId);
                             if (target) {
@@ -978,7 +987,7 @@
                     } else {
                         nextSub(); 
                     }
-                }, outId ? 400 : 0); // Çıkacak oyuncu varsa onun inişini bekle
+                }, outId ? 400 : 0); 
                 
                 i++;
             }
