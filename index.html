@@ -601,17 +601,31 @@
             });
         }
 
-        // BİR ÖNCEKİ ROTASYONDAN KADROYU VE DURUMU DEVİR ALMA MANTIĞI
+        // --- YENİ EKLENEN KARARLI MİRAS KORUMA MANTIĞI ---
         function generateFromPreviousRotation(rot, phase) {
             // SONSUZ DÖNGÜ KIRICI: Rotasyon 1 ASLA Rotasyon 6'dan miras devralmaz!
-            // Bu sayede 6'dan sonra başa dönüldüğünde oyuncular Fabrika Ayarına / Orijinal Rot 1'e döner.
             if (rot === 1) return false; 
 
             let prevRot = rot - 1;
-            let prevKey = `${prevRot}_${phase}`;
+            let stablePhases = ['serve_receive', 'attack', 'defense'];
+            let prevFormation = null;
             
-            if (formations[prevKey]) {
-                let prevFormation = formations[prevKey].players;
+            // Eğer "Döndür"e basıldığında geçilen yeni faz 'serve' (Servis) değilse
+            // ve önceki rotasyonda o fazın kendisi varsa, direkt onu referans al.
+            if (phase !== 'serve' && formations[`${prevRot}_${phase}`]) {
+                prevFormation = formations[`${prevRot}_${phase}`].players;
+            } else {
+                // Yoksa VEYA Servis Kullanırken "Döndür" dersen, 
+                // önceki rotasyonun 'Servis Olmayan' kararlı bir fazını (ör: serve_receive) bul.
+                for (let ph of stablePhases) {
+                    if (formations[`${prevRot}_${ph}`]) {
+                        prevFormation = formations[`${prevRot}_${ph}`].players;
+                        break;
+                    }
+                }
+            }
+
+            if (prevFormation) {
                 team.forEach(p => {
                     let prevP = prevFormation.find(f => f.id === p.id);
                     if (prevP && prevP.loc === 'court' && prevP.pos !== null) {
@@ -822,7 +836,6 @@
             closeModal('nameModal'); renderAll();
         }
 
-        // --- DEVLET GEÇİŞİ (ANIMASYON VE JUMPER KONTROLÜ) YENİ MANTIK ---
         function transitionToState(targetRot, targetPhase) {
             if (isAnimating) return; 
             
@@ -842,6 +855,29 @@
 
             if (!applyFormation(currentRotation, currentPhase)) { 
                 if (diff === 0) {
+                    // YENİ EKLENEN KARARLI MİRAS KORUMA MANTIĞI:
+                    // Aynı rotasyonda daha önce girilmemiş bir faza tıklandığında (Örn: Servis'ten Savunma'ya geçiş)
+                    // Aktif sahadaki Servis kadrosunu KOPYALAMAZ. O rotasyonun kararlı kadrosunu bulur ve ona döner.
+                    let stablePhases = ['serve_receive', 'attack', 'defense'];
+                    let stableFormation = null;
+                    for (let ph of stablePhases) {
+                        if (formations[`${currentRotation}_${ph}`]) {
+                            stableFormation = formations[`${currentRotation}_${ph}`].players;
+                            break;
+                        }
+                    }
+
+                    if (stableFormation) {
+                        team.forEach(p => {
+                            let sf = stableFormation.find(f => f.id === p.id);
+                            if (sf) {
+                                p.loc = sf.loc;
+                                p.pos = sf.pos;
+                            }
+                        });
+                    }
+                    
+                    // Pozisyonları hedeflenen fazın kalıbına oturtur
                     team.forEach(p => {
                         if (p.loc === 'court' && p.pos !== null) {
                             p.x = baseCoords[p.pos].x;
@@ -887,7 +923,6 @@
             if (subOutList.length > 0 || subInList.length > 0) {
                 isAnimating = true;
                 
-                // 1. AŞAMA: ROTASYON KAYMASI
                 newTeam.forEach(p => {
                     let oldP = oldTeam.find(o => o.id === p.id);
                     let isJumper = jumpers.some(j => j.old.id === p.id);
@@ -909,7 +944,6 @@
                     }
                 });
 
-                // 2. AŞAMA: DEĞİŞİKLİK UÇUŞU
                 setTimeout(() => {
                     animateSubstitutions(subOutList, subInList, () => {
                         renderAll(); 
@@ -924,7 +958,6 @@
             }
         }
 
-        // --- SIRALI OYUNCU DEĞİŞİKLİĞİ ANİMASYONU ---
         function animateSubstitutions(subOut, subIn, callback) {
             let i = 0;
             let court = document.getElementById('court');
@@ -1250,24 +1283,24 @@
                     p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
                     swapped = true;
 
-                    const phases = ['serve_receive', 'attack', 'defense', 'serve'];
-                    
-                    // GELECEĞE MİRAS DÖNGÜSÜ:
-                    // Değişikliği bulunduğun rotasyondan başlayıp, 6. rotasyona kadar (varsa) tüm kaydedilmiş fazlara uygular.
-                    // Böylece oyuncu değişikliği sonraki rotasyonlara da kalıcı işler. (Rotasyon 1'e dokunmaz!)
-                    for (let r = currentRotation; r <= 6; r++) {
-                        phases.forEach(ph => {
-                            let key = `${r}_${ph}`;
-                            if (formations[key]) {
-                                let f1 = formations[key].players.find(p => p.id === p1.id);
-                                let f2 = formations[key].players.find(p => p.id === p2.id);
-                                if (f1 && f2 && ((f1.loc === 'bench' && f2.loc === 'court') || (f1.loc === 'court' && f2.loc === 'bench'))) {
-                                    let tLoc = f1.loc; let tPos = f1.pos; let tX = f1.x; let tY = f1.y;
-                                    f1.loc = f2.loc; f1.pos = f2.pos; f1.x = f2.x; f1.y = f2.y;
-                                    f2.loc = tLoc; f2.pos = tPos; f2.x = tX; f2.y = tY;
+                    // YENİ MANTIK: Eğer şu anki faz 'serve' (Servis Kullanma) ise, değişikliği diğer fazlara/rotasyonlara yayma!
+                    if (currentPhase !== 'serve') {
+                        const phases = ['serve_receive', 'attack', 'defense', 'serve'];
+                        
+                        for (let r = currentRotation; r <= 6; r++) {
+                            phases.forEach(ph => {
+                                let key = `${r}_${ph}`;
+                                if (formations[key]) {
+                                    let f1 = formations[key].players.find(p => p.id === p1.id);
+                                    let f2 = formations[key].players.find(p => p.id === p2.id);
+                                    if (f1 && f2 && ((f1.loc === 'bench' && f2.loc === 'court') || (f1.loc === 'court' && f2.loc === 'bench'))) {
+                                        let tLoc = f1.loc; let tPos = f1.pos; let tX = f1.x; let tY = f1.y;
+                                        f1.loc = f2.loc; f1.pos = f2.pos; f1.x = f2.x; f1.y = f2.y;
+                                        f2.loc = tLoc; f2.pos = tPos; f2.x = tX; f2.y = tY;
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
                 }
             } 
