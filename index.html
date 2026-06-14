@@ -411,7 +411,6 @@
 
     <div id="toast">✅ Kaydedildi!</div>
 
-    <!-- Modals (Aynı şekilde korundu) -->
     <div id="saveModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Kaydet Seçenekleri</h4>
@@ -551,9 +550,11 @@
             4: { x: 16.6, y: 20 }, 5: { x: 16.6, y: 80 }, 6: { x: 50.0, y: 80 }
         };
 
-        // YENİ VE SADELEŞTİRİLMİŞ ANAHTAR MANTIĞI:
-        // Hücum ve Savunma dizilimleri "Kullanan/Karşılayan" diye ikiye ayrılmaz. X,Y ortak bir havuzdan çekilir!
+        // Hücum ve Savunma dizilimlerini serveFlag'e (kullanma/karşılama) göre 6 faza bölen sistem
         function getFormationKey(rot, phase) {
+            if (phase === 'attack' || phase === 'defense') {
+                return `${rot}_${phase}_${serveFlag}`;
+            }
             return `${rot}_${phase}`;
         }
 
@@ -612,7 +613,7 @@
 
         function generateFromPreviousRotation(rot, phase) {
             let prevRot = rot === 1 ? 6 : rot - 1;
-            let prevKey = `${prevRot}_${phase}`;
+            let prevKey = getFormationKey(prevRot, phase);
             let prevFormation = formations[prevKey] ? formations[prevKey].players : null;
 
             if (!prevFormation) {
@@ -664,9 +665,6 @@
             formations[key] = { players: team.map(p => ({ id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y })) };
         }
 
-        // YENİ, DAHA ZEKİ YÜKLEME MANTIĞI:
-        // Eğer Hücum veya Savunma yüklüyorsak; "loc" (sahada mı yedekte mi) ve "pos" bilgisini 
-        // doğrudan güncel servis bayrağına göre zorla. X,Y ise ortak havuzdan gelsin!
         function applyFormation(rot, phase) {
             let key = getFormationKey(rot, phase);
             let savedF = formations[key];
@@ -921,9 +919,10 @@
             let diff = targetRot - oldRot;
             if (diff < 0) diff += 6;
 
+            let targetKey = getFormationKey(currentRotation, currentPhase);
+
             if (!applyFormation(currentRotation, currentPhase)) { 
                 if (diff === 0) {
-                    // İlk defa Hücum/Savunmaya tıklandıysa, eski (Servis) halindeki X,Y konumlarını mükemmel kopyalar!
                     let basePhase = serveFlag;
                     if (targetPhase === 'serve' || targetPhase === 'serve_receive') basePhase = targetPhase;
                     let baseKey = `${currentRotation}_${basePhase}`;
@@ -937,6 +936,7 @@
                     }
 
                     if (baseFormation) {
+                        // 1. Kadroyu kendi bayrağının (serve_receive veya serve) tabanından alıyoruz
                         team.forEach(p => {
                             let bf = baseFormation.find(f => f.id === p.id);
                             if (bf) {
@@ -945,17 +945,37 @@
                             } else {
                                 p.loc = 'bench'; p.pos = null;
                             }
-                            
+                        });
+
+                        // 2. Diğer bayraktaki aynı fazı bul (kopyalama kaynağı için)
+                        let otherFlag = serveFlag === 'serve' ? 'serve_receive' : 'serve';
+                        let otherKey = (currentPhase === 'attack' || currentPhase === 'defense') ? `${currentRotation}_${currentPhase}_${otherFlag}` : null;
+                        let otherF = otherKey && formations[otherKey] ? formations[otherKey].players : null;
+
+                        // 3. X ve Y koordinatlarını eşleştir
+                        team.forEach(p => {
                             if (p.loc === 'court') {
-                                let oldP = oldTeam.find(o => o.id === p.id);
-                                if (oldP && oldP.loc === 'court') {
-                                    p.x = oldP.x; p.y = oldP.y;
-                                } else {
-                                    let swappedOld = oldTeam.find(o => o.pos === p.pos && o.loc === 'court');
-                                    if (swappedOld) {
-                                        p.x = swappedOld.x; p.y = swappedOld.y;
+                                if (otherF) {
+                                    let match = otherF.find(f => f.id === p.id && f.loc === 'court');
+                                    if (match) { 
+                                        p.x = match.x; p.y = match.y; 
                                     } else {
-                                        p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y;
+                                        // Oyuncu o fazda değiştiyse, yerine gelenin (aynı pos) koordinatlarını al
+                                        let swapped = otherF.find(f => f.pos === p.pos && f.loc === 'court');
+                                        if (swapped) { p.x = swapped.x; p.y = swapped.y; }
+                                        else { p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y; }
+                                    }
+                                } else {
+                                    let oldMatch = oldTeam.find(o => o.pos === p.pos && o.loc === 'court');
+                                    if (oldMatch) {
+                                        p.x = oldMatch.x; p.y = oldMatch.y;
+                                    } else {
+                                        let swappedOld = oldTeam.find(o => o.pos === p.pos && o.loc === 'court');
+                                        if (swappedOld) {
+                                            p.x = swappedOld.x; p.y = swappedOld.y;
+                                        } else {
+                                            p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y;
+                                        }
                                     }
                                 }
                             } else {
@@ -965,6 +985,10 @@
                     } else {
                         setToBaseFormation(currentRotation);
                     }
+                    
+                    // İşlem bittiğinde bu dizilimi bağımsız kendi dosyasına anında kaydet
+                    formations[targetKey] = { players: team.map(p => ({ id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y })) };
+
                 } else if (!generateFromPreviousRotation(currentRotation, currentPhase)) {
                     setToBaseFormation(currentRotation); 
                 }
@@ -1364,14 +1388,17 @@
                     p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
                     swapped = true;
 
-                    // YENİ: Oyuncu değişikliği olduğunda ilgili kadroları hedefe yazarız.
-                    // Hücum/Savunma zaten Roster'ı bu hedeflerden çekeceği için otomatik güncellenmiş olur!
+                    // Değişiklikleri mevcut takımın hedeflerine doğru şekilde işliyoruz
                     let targetKeys = [];
                     if (serveFlag === 'serve') {
                         targetKeys.push(`${currentRotation}_serve`);
+                        targetKeys.push(`${currentRotation}_attack_serve`);
+                        targetKeys.push(`${currentRotation}_defense_serve`);
                     } else {
                         for (let r = 1; r <= 6; r++) {
                             targetKeys.push(`${r}_serve_receive`);
+                            targetKeys.push(`${r}_attack_serve_receive`);
+                            targetKeys.push(`${r}_defense_serve_receive`);
                         }
                     }
 
