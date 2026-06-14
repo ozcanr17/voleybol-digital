@@ -411,6 +411,7 @@
 
     <div id="toast">✅ Kaydedildi!</div>
 
+    <!-- Modals (Aynı şekilde korundu) -->
     <div id="saveModal" class="modal-overlay">
         <div class="modal-box">
             <h4>Kaydet Seçenekleri</h4>
@@ -525,6 +526,7 @@
         let slingshotTarget = {x: 50, y: 50};
         
         let currentPhase = 'serve_receive'; 
+        let serveFlag = 'serve_receive'; 
         let ballCoords = { x: 50, y: 50 }; 
         let playerIdCounter = 8; 
         let currentRotation = 1; 
@@ -548,6 +550,12 @@
             1: { x: 83.3, y: 80 }, 2: { x: 83.3, y: 20 }, 3: { x: 50.0, y: 20 },
             4: { x: 16.6, y: 20 }, 5: { x: 16.6, y: 80 }, 6: { x: 50.0, y: 80 }
         };
+
+        // YENİ VE SADELEŞTİRİLMİŞ ANAHTAR MANTIĞI:
+        // Hücum ve Savunma dizilimleri "Kullanan/Karşılayan" diye ikiye ayrılmaz. X,Y ortak bir havuzdan çekilir!
+        function getFormationKey(rot, phase) {
+            return `${rot}_${phase}`;
+        }
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedRoster = localStorage.getItem('voleybolRoster');
@@ -579,6 +587,7 @@
 
             currentRotation = 1;
             currentPhase = 'serve_receive';
+            serveFlag = 'serve_receive';
             updateRotateButton();
 
             if (!applyFormation(currentRotation, currentPhase)) {
@@ -601,22 +610,13 @@
             });
         }
 
-        // --- YENİ EKLENEN KARARLI MİRAS KORUMA MANTIĞI ---
         function generateFromPreviousRotation(rot, phase) {
-            // SONSUZ DÖNGÜ KIRICI: Rotasyon 1 ASLA Rotasyon 6'dan miras devralmaz!
-            if (rot === 1) return false; 
+            let prevRot = rot === 1 ? 6 : rot - 1;
+            let prevKey = `${prevRot}_${phase}`;
+            let prevFormation = formations[prevKey] ? formations[prevKey].players : null;
 
-            let prevRot = rot - 1;
-            let stablePhases = ['serve_receive', 'attack', 'defense'];
-            let prevFormation = null;
-            
-            // Eğer "Döndür"e basıldığında geçilen yeni faz 'serve' (Servis) değilse
-            // ve önceki rotasyonda o fazın kendisi varsa, direkt onu referans al.
-            if (phase !== 'serve' && formations[`${prevRot}_${phase}`]) {
-                prevFormation = formations[`${prevRot}_${phase}`].players;
-            } else {
-                // Yoksa VEYA Servis Kullanırken "Döndür" dersen, 
-                // önceki rotasyonun 'Servis Olmayan' kararlı bir fazını (ör: serve_receive) bul.
+            if (!prevFormation) {
+                let stablePhases = ['serve_receive', 'serve'];
                 for (let ph of stablePhases) {
                     if (formations[`${prevRot}_${ph}`]) {
                         prevFormation = formations[`${prevRot}_${ph}`].players;
@@ -626,18 +626,32 @@
             }
 
             if (prevFormation) {
+                // Rotasyona geçerken her zaman o bayrağın baz kadrosunu alıyoruz!
+                let basePhase = serveFlag;
+                if (phase === 'serve' || phase === 'serve_receive') basePhase = phase;
+                let baseKey = `${rot}_${basePhase}`;
+                let baseF = formations[baseKey];
+
                 team.forEach(p => {
                     let prevP = prevFormation.find(f => f.id === p.id);
-                    if (prevP && prevP.loc === 'court' && prevP.pos !== null) {
+                    let bf = baseF ? baseF.players.find(f => f.id === p.id) : null;
+                    
+                    if ((phase === 'attack' || phase === 'defense') && bf) {
+                        p.loc = bf.loc;
+                        p.pos = bf.pos;
+                    } else if (prevP && prevP.loc === 'court' && prevP.pos !== null) {
                         p.loc = 'court';
                         p.pos = prevP.pos === 1 ? 6 : prevP.pos - 1;
-                        p.x = baseCoords[p.pos].x;
-                        p.y = baseCoords[p.pos].y;
                     } else {
                         p.loc = 'bench';
                         p.pos = null;
-                        p.x = null;
-                        p.y = null;
+                    }
+
+                    if (p.loc === 'court') {
+                        p.x = baseCoords[p.pos].x; 
+                        p.y = baseCoords[p.pos].y;
+                    } else {
+                        p.x = null; p.y = null;
                     }
                 });
                 return true;
@@ -646,18 +660,61 @@
         }
 
         function recordCurrentFormation() {
-            let key = `${currentRotation}_${currentPhase}`;
+            let key = getFormationKey(currentRotation, currentPhase);
             formations[key] = { players: team.map(p => ({ id: p.id, loc: p.loc, pos: p.pos, x: p.x, y: p.y })) };
         }
 
+        // YENİ, DAHA ZEKİ YÜKLEME MANTIĞI:
+        // Eğer Hücum veya Savunma yüklüyorsak; "loc" (sahada mı yedekte mi) ve "pos" bilgisini 
+        // doğrudan güncel servis bayrağına göre zorla. X,Y ise ortak havuzdan gelsin!
         function applyFormation(rot, phase) {
-            let key = `${rot}_${phase}`;
-            if (formations[key]) {
-                let savedF = formations[key];
+            let key = getFormationKey(rot, phase);
+            let savedF = formations[key];
+            
+            let basePhase = serveFlag;
+            if (phase === 'serve' || phase === 'serve_receive') {
+                basePhase = phase; 
+            }
+            let baseKey = `${rot}_${basePhase}`;
+            let baseF = formations[baseKey];
+
+            if (!baseF) {
+                let stablePhases = ['serve_receive', 'serve'];
+                for (let ph of stablePhases) {
+                    if (formations[`${rot}_${ph}`]) { baseF = formations[`${rot}_${ph}`]; break; }
+                }
+            }
+
+            if (savedF) {
                 team.forEach(p => {
-                    let f = savedF.players.find(sf => sf.id === p.id);
-                    if (f) { p.loc = f.loc; p.pos = f.pos; p.x = f.x; p.y = f.y; } 
-                    else { p.loc = 'bench'; p.pos = null; p.x = null; p.y = null; }
+                    let sf = savedF.players.find(f => f.id === p.id);
+                    let bf = baseF ? baseF.players.find(f => f.id === p.id) : null;
+                    
+                    if ((phase === 'attack' || phase === 'defense') && bf) {
+                        p.loc = bf.loc;
+                        p.pos = bf.pos;
+                    } else if (sf) {
+                        p.loc = sf.loc;
+                        p.pos = sf.pos;
+                    } else {
+                        p.loc = 'bench'; p.pos = null;
+                    }
+
+                    // Koordinat Çözümleme (Eğer oyuncu değişikliği olduysa yeni oyuncu eskisinin X,Y'sine gitsin)
+                    if (p.loc === 'court') {
+                        if (sf && sf.loc === 'court') {
+                            p.x = sf.x; p.y = sf.y;
+                        } else {
+                            let swappedSf = savedF.players.find(f => f.pos === p.pos && f.loc === 'court');
+                            if (swappedSf) {
+                                p.x = swappedSf.x; p.y = swappedSf.y;
+                            } else {
+                                p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y;
+                            }
+                        }
+                    } else {
+                        p.x = null; p.y = null;
+                    }
                 });
                 return true;
             }
@@ -671,7 +728,6 @@
             setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => { toast.innerText = "✅ Kaydedildi!"; }, 300); }, 2000);
         }
 
-        // PAYLAŞIM VE YÜKLEME FONKSİYONLARI
         function getLiveShareCode() {
             recordCurrentFormation(); 
             const liveData = {
@@ -743,7 +799,7 @@
                 playerIdCounter = 8; currentRotation = 1; formations = {}; ballCoords = { x: 50, y: 50 }; 
                 localStorage.removeItem('voleybolRoster'); 
                 localStorage.removeItem('voleybolFormations'); 
-                setPhase('serve_receive');
+                currentPhase = 'serve_receive'; serveFlag = 'serve_receive';
             } else if (cbRoster) {
                 let newTeam = JSON.parse(JSON.stringify(defaultTeam));
                 newTeam.forEach(np => {
@@ -756,11 +812,15 @@
                 formations = {}; currentRotation = 1; ballCoords = { x: 50, y: 50 };
                 setToBaseFormation(currentRotation);
                 localStorage.removeItem('voleybolFormations');
-                setPhase('serve_receive');
+                currentPhase = 'serve_receive'; serveFlag = 'serve_receive';
             }
 
             closeModal('resetModal');
             updateRotateButton(); 
+            
+            document.querySelectorAll('.phase-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${currentPhase}`).classList.add('active');
+            
             renderAll(); 
             recordCurrentFormation();
             showToast("✅ Başarıyla Sıfırlandı!");
@@ -836,10 +896,15 @@
             closeModal('nameModal'); renderAll();
         }
 
+        function setPhase(targetPhase) { 
+            transitionToState(currentRotation, targetPhase); 
+        }
+
         function transitionToState(targetRot, targetPhase) {
             if (isAnimating) return; 
             
             recordCurrentFormation(); 
+            
             let oldTeam = JSON.parse(JSON.stringify(team));
             let oldRot = currentRotation;
             
@@ -847,6 +912,9 @@
             currentPhase = targetPhase;
             updateRotateButton();
             
+            if (targetPhase === 'serve_receive') serveFlag = 'serve_receive';
+            else if (targetPhase === 'serve') serveFlag = 'serve';
+
             document.querySelectorAll('.phase-btn').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${targetPhase}`).classList.add('active');
 
@@ -855,35 +923,48 @@
 
             if (!applyFormation(currentRotation, currentPhase)) { 
                 if (diff === 0) {
-                    // YENİ EKLENEN KARARLI MİRAS KORUMA MANTIĞI:
-                    // Aynı rotasyonda daha önce girilmemiş bir faza tıklandığında (Örn: Servis'ten Savunma'ya geçiş)
-                    // Aktif sahadaki Servis kadrosunu KOPYALAMAZ. O rotasyonun kararlı kadrosunu bulur ve ona döner.
-                    let stablePhases = ['serve_receive', 'attack', 'defense'];
-                    let stableFormation = null;
-                    for (let ph of stablePhases) {
-                        if (formations[`${currentRotation}_${ph}`]) {
-                            stableFormation = formations[`${currentRotation}_${ph}`].players;
-                            break;
+                    // İlk defa Hücum/Savunmaya tıklandıysa, eski (Servis) halindeki X,Y konumlarını mükemmel kopyalar!
+                    let basePhase = serveFlag;
+                    if (targetPhase === 'serve' || targetPhase === 'serve_receive') basePhase = targetPhase;
+                    let baseKey = `${currentRotation}_${basePhase}`;
+                    let baseFormation = formations[baseKey] ? formations[baseKey].players : null;
+
+                    if (!baseFormation) {
+                        let stablePhases = ['serve_receive', 'serve'];
+                        for (let ph of stablePhases) {
+                            if (formations[`${currentRotation}_${ph}`]) { baseFormation = formations[`${currentRotation}_${ph}`].players; break; }
                         }
                     }
 
-                    if (stableFormation) {
+                    if (baseFormation) {
                         team.forEach(p => {
-                            let sf = stableFormation.find(f => f.id === p.id);
-                            if (sf) {
-                                p.loc = sf.loc;
-                                p.pos = sf.pos;
+                            let bf = baseFormation.find(f => f.id === p.id);
+                            if (bf) {
+                                p.loc = bf.loc;
+                                p.pos = bf.pos;
+                            } else {
+                                p.loc = 'bench'; p.pos = null;
+                            }
+                            
+                            if (p.loc === 'court') {
+                                let oldP = oldTeam.find(o => o.id === p.id);
+                                if (oldP && oldP.loc === 'court') {
+                                    p.x = oldP.x; p.y = oldP.y;
+                                } else {
+                                    let swappedOld = oldTeam.find(o => o.pos === p.pos && o.loc === 'court');
+                                    if (swappedOld) {
+                                        p.x = swappedOld.x; p.y = swappedOld.y;
+                                    } else {
+                                        p.x = baseCoords[p.pos].x; p.y = baseCoords[p.pos].y;
+                                    }
+                                }
+                            } else {
+                                p.x = null; p.y = null;
                             }
                         });
+                    } else {
+                        setToBaseFormation(currentRotation);
                     }
-                    
-                    // Pozisyonları hedeflenen fazın kalıbına oturtur
-                    team.forEach(p => {
-                        if (p.loc === 'court' && p.pos !== null) {
-                            p.x = baseCoords[p.pos].x;
-                            p.y = baseCoords[p.pos].y;
-                        }
-                    });
                 } else if (!generateFromPreviousRotation(currentRotation, currentPhase)) {
                     setToBaseFormation(currentRotation); 
                 }
@@ -1023,8 +1104,8 @@
             nextSub();
         }
 
-        function setPhase(targetPhase) { transitionToState(currentRotation, targetPhase); }
         function updateRotateButton() { document.getElementById('rotateBtn').innerText = `Döndür (Rot: ${currentRotation})`; }
+        
         function rotateTeam() {
             let nextRot = currentRotation === 6 ? 1 : currentRotation + 1;
             transitionToState(nextRot, currentPhase);
@@ -1283,25 +1364,30 @@
                     p2.loc = tempLoc; p2.pos = tempPos; p2.x = tempX; p2.y = tempY;
                     swapped = true;
 
-                    // YENİ MANTIK: Eğer şu anki faz 'serve' (Servis Kullanma) ise, değişikliği diğer fazlara/rotasyonlara yayma!
-                    if (currentPhase !== 'serve') {
-                        const phases = ['serve_receive', 'attack', 'defense', 'serve'];
-                        
-                        for (let r = currentRotation; r <= 6; r++) {
-                            phases.forEach(ph => {
-                                let key = `${r}_${ph}`;
-                                if (formations[key]) {
-                                    let f1 = formations[key].players.find(p => p.id === p1.id);
-                                    let f2 = formations[key].players.find(p => p.id === p2.id);
-                                    if (f1 && f2 && ((f1.loc === 'bench' && f2.loc === 'court') || (f1.loc === 'court' && f2.loc === 'bench'))) {
-                                        let tLoc = f1.loc; let tPos = f1.pos; let tX = f1.x; let tY = f1.y;
-                                        f1.loc = f2.loc; f1.pos = f2.pos; f1.x = f2.x; f1.y = f2.y;
-                                        f2.loc = tLoc; f2.pos = tPos; f2.x = tX; f2.y = tY;
-                                    }
-                                }
-                            });
+                    // YENİ: Oyuncu değişikliği olduğunda ilgili kadroları hedefe yazarız.
+                    // Hücum/Savunma zaten Roster'ı bu hedeflerden çekeceği için otomatik güncellenmiş olur!
+                    let targetKeys = [];
+                    if (serveFlag === 'serve') {
+                        targetKeys.push(`${currentRotation}_serve`);
+                    } else {
+                        for (let r = 1; r <= 6; r++) {
+                            targetKeys.push(`${r}_serve_receive`);
                         }
                     }
+
+                    let currentKey = getFormationKey(currentRotation, currentPhase);
+                    
+                    targetKeys.forEach(key => {
+                        if (key !== currentKey && formations[key]) {
+                            let f1 = formations[key].players.find(p => p.id === p1.id);
+                            let f2 = formations[key].players.find(p => p.id === p2.id);
+                            if (f1 && f2 && ((f1.loc === 'bench' && f2.loc === 'court') || (f1.loc === 'court' && f2.loc === 'bench'))) {
+                                let tLoc = f1.loc; let tPos = f1.pos; let tX = f1.x; let tY = f1.y;
+                                f1.loc = f2.loc; f1.pos = f2.pos; f1.x = f2.x; f1.y = f2.y;
+                                f2.loc = tLoc; f2.pos = tPos; f2.x = tX; f2.y = tY;
+                            }
+                        }
+                    });
                 }
             } 
             
