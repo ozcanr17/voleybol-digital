@@ -4,287 +4,657 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Saha Kiralama Otomasyonu | Voleybol Digital</title>
-<meta name="description" content="spor.istanbul'da voleybol sahası seansı açılır açılmaz otomatik yakalayan Chrome eklentisi.">
+<meta name="description" content="spor.istanbul'da seans açılır açılmaz sahayı sepete ekler. Tarayıcıda çalışır, bilgisayara kurulum gerektirmez.">
 <style>
   :root {
-    --bg:#f5f7fb; --card:#fff; --ink:#141c33; --muted:#6a7490; --faint:#98a1b8;
-    --line:#e2e7f0; --line2:#eef1f7; --accent:#2b5cf0; --accent-soft:#2b5cf014;
-    --ok:#0e8a5f; --ok-soft:#0e8a5f14; --warn:#ad5c09; --warn-soft:#ad5c0914;
-    --err:#c92a4b; --code:#0d1326;
-    --shadow:0 1px 2px #0d132608, 0 8px 26px #0d132612;
+    --bg:#f5f7fb; --card:#fff; --raise:#fbfcfe; --ink:#141c33; --muted:#6a7490;
+    --faint:#98a1b8; --line:#e2e7f0; --line2:#eef1f7;
+    --accent:#2b5cf0; --accent-soft:#2b5cf014;
+    --ok:#0e8a5f; --ok-soft:#0e8a5f16; --warn:#ad5c09; --warn-soft:#ad5c0916;
+    --err:#c92a4b; --err-soft:#c92a4b16; --code:#0d1326;
+    --shadow:0 1px 2px #0d132608, 0 6px 20px #0d132610;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg:#0b0f1c; --card:#151b2c; --ink:#e9edf7; --muted:#98a2bd; --faint:#727d99;
-      --line:#28304a; --line2:#212940; --accent:#7ea1ff; --accent-soft:#7ea1ff1c;
-      --ok:#4ac996; --ok-soft:#4ac9961c; --warn:#e5a752; --warn-soft:#e5a75218;
-      --err:#ff7d93; --code:#070b16;
-      --shadow:0 1px 2px #0006, 0 10px 30px #0007;
+      --bg:#0b0f1c; --card:#151b2c; --raise:#1b2236; --ink:#e9edf7; --muted:#98a2bd;
+      --faint:#727d99; --line:#28304a; --line2:#212940;
+      --accent:#7ea1ff; --accent-soft:#7ea1ff1c;
+      --ok:#4ac996; --ok-soft:#4ac9961c; --warn:#e5a752; --warn-soft:#e5a75220;
+      --err:#ff7d93; --err-soft:#ff7d9320; --code:#070b16;
+      --shadow:0 1px 2px #0006, 0 8px 28px #0007;
     }
   }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
-         font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  .wrap { max-width:790px; margin:0 auto; padding:44px 20px 80px; }
+         font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:1120px; margin:0 auto; padding:26px 18px 72px; }
   a { color:var(--accent); }
 
-  .home { display:inline-flex; align-items:center; gap:6px; color:var(--muted);
-          text-decoration:none; font-size:13.5px; margin-bottom:26px; }
+  .home { display:inline-flex; gap:6px; color:var(--muted); text-decoration:none;
+          font-size:13.5px; margin-bottom:18px; }
   .home:hover { color:var(--accent); }
-  h1 { font-size:31px; line-height:1.2; margin:0 0 10px; letter-spacing:-.02em; }
-  .lede { color:var(--muted); font-size:16.5px; margin:0 0 32px; max-width:62ch; }
+  h1 { font-size:23px; margin:0 0 5px; letter-spacing:-.01em; }
+  .lede { color:var(--muted); margin:0 0 20px; font-size:14px; max-width:64ch; }
 
-  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
-          padding:24px; box-shadow:var(--shadow); margin-bottom:20px; }
+  .cols { display:grid; grid-template-columns:minmax(0,1.02fr) minmax(0,1fr);
+          gap:18px; align-items:start; }
+  @media (max-width:900px) { .cols { grid-template-columns:1fr; } }
 
-  #tespit { border-width:2px; }
-  #tespit.ok { border-color:var(--ok); background:linear-gradient(var(--ok-soft),transparent); }
-  #tespit.yok { border-color:var(--line); }
-  .basSatir { display:flex; align-items:center; gap:11px; margin-bottom:6px; }
-  .basSatir h2 { font-size:19px; margin:0; }
-  .nokta { width:11px; height:11px; border-radius:50%; background:var(--faint);
-           flex:none; animation:nb 1.3s ease-in-out infinite; }
-  #tespit.ok .nokta { background:var(--ok); animation:none; }
-  #tespit.yok .nokta { background:var(--faint); animation:none; }
-  @keyframes nb { 50% { opacity:.25; } }
-  .govde { color:var(--muted); font-size:15px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px;
+          padding:20px; box-shadow:var(--shadow); }
+  .card + .card { margin-top:16px; }
+  h2 { font-size:13.5px; font-weight:700; color:var(--muted); margin:0 0 15px;
+       display:flex; align-items:center; gap:9px; }
+  h2 .num { width:19px; height:19px; border-radius:50%; background:var(--accent-soft);
+            color:var(--accent); font-size:11px; font-weight:700; flex:none;
+            display:grid; place-items:center; }
+  h2 .sag { margin-left:auto; font-weight:500; }
 
-  .btn { display:inline-flex; align-items:center; gap:9px; background:var(--accent);
-         color:#fff; text-decoration:none; font-weight:650; font-size:15.5px;
-         padding:13px 24px; border-radius:11px; border:0; cursor:pointer;
-         margin-top:18px; }
-  .btn:hover { filter:brightness(1.09); }
-  .btn.sec { background:transparent; color:var(--ink); border:1px solid var(--line);
-             font-weight:500; font-size:14px; padding:10px 18px; }
-  .btnSatir { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  label { display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+  label .opt { color:var(--faint); font-weight:400; }
+  input,select { width:100%; padding:10px 12px; border:1px solid var(--line);
+                 border-radius:9px; background:var(--raise); color:var(--ink);
+                 font:inherit; font-size:14px; }
+  input:hover,select:hover { border-color:var(--faint); }
+  input:focus,select:focus { outline:none; border-color:var(--accent);
+                             box-shadow:0 0 0 3px var(--accent-soft); }
+  input.bad { border-color:var(--err); box-shadow:0 0 0 3px var(--err-soft); }
+  .hata-msg { color:var(--err); font-size:12px; margin-top:5px; display:none; }
+  .hata-msg.gor { display:block; }
+  .alan { margin-bottom:14px; }
+  .alan:last-child { margin-bottom:0; }
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
+  .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:13px; }
+  @media (max-width:460px) { .g2,.g3 { grid-template-columns:1fr; } }
+  .cift { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
 
-  ol.adim { counter-reset:s; list-style:none; padding:0; margin:0; }
-  ol.adim li { counter-increment:s; position:relative; padding:0 0 24px 46px; }
-  ol.adim li::before { content:counter(s); position:absolute; left:0; top:-1px;
-    width:30px; height:30px; border-radius:50%; background:var(--accent-soft);
-    color:var(--accent); font-size:14px; font-weight:700; display:grid; place-items:center; }
-  ol.adim li::after { content:""; position:absolute; left:14.5px; top:34px; bottom:2px;
+  .kutu { display:flex; align-items:flex-start; gap:9px; padding:7px 0; }
+  .kutu input { width:17px; height:17px; flex:none; margin-top:1px; accent-color:var(--accent); }
+  .kutu label { margin:0; color:var(--ink); font-size:13.5px; cursor:pointer; }
+  .kutu label small { display:block; color:var(--muted); font-size:12px; margin-top:1px; }
+
+  button { font:inherit; font-size:14px; font-weight:600; padding:10px 18px;
+           border-radius:9px; border:1px solid transparent; cursor:pointer;
+           background:var(--accent); color:#fff; }
+  button:hover:not(:disabled) { filter:brightness(1.08); }
+  button.ghost { background:transparent; border-color:var(--line); color:var(--ink); }
+  button.ghost:hover:not(:disabled) { background:var(--raise); filter:none; }
+  button.mini { padding:5px 11px; font-size:12px; font-weight:500; }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  .eylem { display:flex; gap:9px; flex-wrap:wrap; }
+
+  .ozet { background:var(--accent-soft); border:1px solid var(--accent);
+          border-radius:10px; padding:12px 14px; margin:16px 0 14px; font-size:13.5px; }
+  .ozet b { font-weight:650; }
+  .ozet .sessiz { color:var(--muted); }
+  .ozet.bad { background:var(--err-soft); border-color:var(--err); }
+
+  .rozet { padding:4px 11px; border-radius:999px; font-size:12px; font-weight:700;
+           background:var(--line2); color:var(--muted); }
+  .rozet.run { background:var(--accent-soft); color:var(--accent); }
+  .rozet.ok  { background:var(--ok-soft); color:var(--ok); }
+  .rozet.err { background:var(--err-soft); color:var(--err); }
+  .rozet.warn{ background:var(--warn-soft); color:var(--warn); }
+  .satir { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .donen { width:11px; height:11px; border:2px solid var(--accent);
+           border-right-color:transparent; border-radius:50%;
+           animation:dn .7s linear infinite; display:none; }
+  .donen.on { display:block; }
+  @keyframes dn { to { transform:rotate(360deg); } }
+
+  #geri { font-size:38px; font-weight:600; font-variant-numeric:tabular-nums;
+          letter-spacing:-.02em; line-height:1.1; margin:2px 0 4px; }
+  #geri.yakin { color:var(--warn); }
+  #geri.canli { color:var(--ok); }
+  .geriEtiket { color:var(--muted); font-size:12.5px; }
+
+  .adimlar { display:flex; margin:18px 0 4px; }
+  .adim { flex:1; text-align:center; position:relative; font-size:11px; color:var(--faint); }
+  .adim .top { width:11px; height:11px; border-radius:50%; background:var(--line);
+               margin:0 auto 6px; position:relative; z-index:1;
+               border:2px solid var(--card); box-sizing:content-box; }
+  .adim::before { content:""; position:absolute; top:7px; left:-50%; width:100%;
+                  height:2px; background:var(--line); }
+  .adim:first-child::before { display:none; }
+  .adim.oldu .top, .adim.oldu::before { background:var(--ok); }
+  .adim.oldu { color:var(--muted); }
+  .adim.simdi .top { background:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+  .adim.simdi { color:var(--accent); font-weight:700; }
+
+  #kayit { background:var(--code); color:#c9d3ee; border-radius:10px; padding:13px;
+           height:230px; overflow-y:auto; font:12px/1.65 ui-monospace,Consolas,monospace;
+           white-space:pre-wrap; word-break:break-word; }
+  #kayit .t { color:#5c6785; }
+  #kayit .iyi { color:#7fe0b0; }
+  #kayit .hata { color:#ff8fa3; }
+  #kayit .bos { color:#5c6785; font-style:italic; }
+
+  .durumKutu { border-radius:10px; padding:12px 14px; margin-bottom:15px; font-size:13.5px; }
+  .durumKutu.ok  { background:var(--ok-soft);  border:1px solid var(--ok); }
+  .durumKutu.yok { background:var(--warn-soft); border:1px solid var(--warn); }
+  .durumKutu.err { background:var(--err-soft); border:1px solid var(--err); display:none; }
+  .durumKutu.err.gor { display:block; }
+
+  ol.kur { counter-reset:s; list-style:none; padding:0; margin:14px 0 0; }
+  ol.kur li { counter-increment:s; position:relative; padding:0 0 18px 40px; }
+  ol.kur li::before { content:counter(s); position:absolute; left:0; top:-1px;
+    width:26px; height:26px; border-radius:50%; background:var(--accent-soft);
+    color:var(--accent); font-size:13px; font-weight:700; display:grid; place-items:center; }
+  ol.kur li::after { content:""; position:absolute; left:12.5px; top:30px; bottom:2px;
     width:1.5px; background:var(--line); }
-  ol.adim li:last-child { padding-bottom:0; }
-  ol.adim li:last-child::after { display:none; }
-  ol.adim b { display:block; margin-bottom:3px; }
-  ol.adim span { color:var(--muted); font-size:14.5px; }
+  ol.kur li:last-child { padding-bottom:0; }
+  ol.kur li:last-child::after { display:none; }
+  ol.kur b { display:block; margin-bottom:2px; }
+  ol.kur span { color:var(--muted); font-size:13.5px; }
 
-  h3 { font-size:16px; margin:26px 0 12px; }
-  h3:first-child { margin-top:0; }
-  ul.duz { padding-left:20px; color:var(--muted); font-size:14.5px; margin:0; }
-  ul.duz li { margin-bottom:7px; }
-  code { font-family:ui-monospace,Consolas,monospace; font-size:13.5px;
-         background:var(--line2); padding:2px 6px; border-radius:5px; }
-  .kopyala { cursor:pointer; border:0; background:var(--line2); color:var(--ink);
-             font:inherit; font-size:13.5px; font-family:ui-monospace,Consolas,monospace;
-             padding:3px 9px; border-radius:5px; }
-  .kopyala:hover { background:var(--accent-soft); color:var(--accent); }
-  .uyari { background:var(--ok-soft); border:1px solid var(--ok); border-radius:10px;
-           padding:13px 16px; font-size:14px; margin-top:18px; }
-  details { border-top:1px solid var(--line2); margin-top:18px; padding-top:6px; }
-  summary { cursor:pointer; font-size:14.5px; color:var(--muted); font-weight:600;
-            padding:9px 0; list-style:none; display:flex; align-items:center; gap:8px; }
+  code, .kopya { font-family:ui-monospace,Consolas,monospace; font-size:12.5px;
+                 background:var(--line2); padding:2px 6px; border-radius:5px; }
+  .kopya { border:0; color:var(--ink); cursor:pointer; }
+  .kopya:hover { background:var(--accent-soft); color:var(--accent); }
+  .not { font-size:12.5px; color:var(--muted); margin:11px 0 0; }
+  details { border-top:1px solid var(--line2); margin-top:16px; padding-top:6px; }
+  summary { cursor:pointer; font-size:13px; color:var(--muted); font-weight:600;
+            padding:8px 0; list-style:none; display:flex; align-items:center; gap:7px; }
   summary::-webkit-details-marker { display:none; }
   summary::before { content:"▸"; font-size:11px; transition:transform .15s; }
   details[open] summary::before { transform:rotate(90deg); }
-  .dip { color:var(--faint); font-size:13px; text-align:center; margin-top:44px;
-         padding-top:22px; border-top:1px solid var(--line); }
+
+  #bildirim { position:fixed; right:18px; bottom:18px; display:flex;
+              flex-direction:column; gap:9px; z-index:99; max-width:340px; }
+  .bldr { background:var(--card); border:1px solid var(--line);
+          border-left:3px solid var(--accent); border-radius:9px; padding:11px 14px;
+          font-size:13.5px; box-shadow:var(--shadow); animation:gir .18s ease-out; }
+  .bldr.ok { border-left-color:var(--ok); }
+  .bldr.err { border-left-color:var(--err); }
+  .bldr.warn { border-left-color:var(--warn); }
+  @keyframes gir { from { opacity:0; transform:translateY(8px); } }
   .gizli { display:none !important; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <a class="home" href="/">&larr; Voleybol Digital</a>
-
   <h1>Saha Kiralama Otomasyonu</h1>
-  <p class="lede">
-    spor.istanbul'da seanslar tam 72 saat önce açılıyor ve saniyesinde kapılıyor.
-    Bu Chrome eklentisi açılış anını sunucu saatine göre bekler, seans göründüğü
-    an yakalar ve sepete ekler.
-  </p>
+  <p class="lede">Seans açıldığı saniyede sahayı sepete ekler. Tarayıcınızda
+     çalışır — bilgisayarınıza hiçbir şey kurulmaz, şifreniz hiçbir yere girilmez.</p>
 
-  <!-- =================== EKLENTİ TESPİTİ =================== -->
-  <div class="card" id="tespit">
-    <div class="basSatir">
-      <span class="nokta"></span>
-      <h2 id="baslik">Eklenti aranıyor…</h2>
+  <!-- ===================== EKLENTİ DURUMU ===================== -->
+  <div class="card" id="eklentiKart" style="margin-bottom:18px">
+    <div id="eklentiDurum" class="durumKutu yok" style="margin:0">
+      <strong>Motor aranıyor…</strong>
     </div>
-    <div class="govde" id="govde">Tarayıcınızda kurulu mu, bakılıyor.</div>
-    <div id="eylem"></div>
-  </div>
-
-  <!-- =================== KURULUM =================== -->
-  <div class="card" id="kurulum">
-    <h3>Kurulum — 2 dakika</h3>
-    <ol class="adim">
-      <li><b>Eklentiyi indirin</b>
-        <span>Tek dosya, 20 KB.</span>
-        <a class="btn" href="indir/saha-kirala-eklenti.zip" download>eklenti.zip indir</a></li>
-
-      <li><b>Zip'i açın</b>
-        <span>İndirilen dosyaya sağ tıklayıp <b>Tümünü ayıkla</b> (Windows) ya da
-          çift tıklayın (Mac). Çıkan klasörü silmeyin — eklenti oradan çalışacak.</span></li>
-
-      <li><b>Chrome'da eklenti sayfasını açın</b>
-        <span>Adres çubuğuna yazın:
-          <button class="kopyala" id="kopyaBtn">chrome://extensions</button>
-          <span id="kopyaNot" style="color:var(--ok)"></span><br>
-          Bu adres bağlantı olarak açılamıyor, Chrome güvenlik nedeniyle
-          engelliyor — elle yazmanız ya da kopyalamanız gerekiyor.</span></li>
-
-      <li><b>Geliştirici modunu açın</b>
-        <span>Sayfanın sağ üstündeki <b>Geliştirici modu</b> anahtarını açın.</span></li>
-
-      <li><b>Klasörü yükleyin</b>
-        <span>Sol üstteki <b>Paketlenmemiş öğe yükle</b> düğmesine basıp
-          2. adımda çıkardığınız klasörü seçin.</span></li>
-
-      <li><b>Hazır</b>
-        <span>Araç çubuğundaki eklenti simgesine (yapboz parçası) tıklayıp
-          <b>Saha Kiralama</b>'yı sabitleyin. Bu sayfayı yenilerseniz yukarıda
-          "kurulu" yazdığını göreceksiniz.</span></li>
-    </ol>
-
-    <div class="uyari">
-      <b>Şifreniz hiçbir yere girilmiyor.</b> Eklenti, spor.istanbul'da zaten
-      açık olan kendi oturumunuzu kullanır. T.C. kimlik numaranız ve şifreniz
-      ne eklentiye, ne bu siteye, ne de başka bir yere yazılır.
-    </div>
-  </div>
-
-  <!-- =================== BİLGİ =================== -->
-  <div class="card">
-    <h3>Nasıl kullanılır?</h3>
-    <ol class="adim">
-      <li><b>spor.istanbul'a giriş yapın</b>
-        <span>Normal şekilde, kendi tarayıcınızda.</span></li>
-      <li><b>Eklenti simgesine tıklayın</b>
-        <span>Tesis, salon, tarih ve saati girin. Açılış anı 72 saat öncesi
-          olarak kendiliğinden hesaplanır.</span></li>
-      <li><b>Başlat deyin</b>
-        <span>spor.istanbul sekmesi açılır ve otomasyon devralır. O sekmeyi açık
-          bırakın; eklenti penceresini kapatabilirsiniz.</span></li>
-      <li><b>SMS kodunu girin</b>
-        <span>Sepete eklendikten sonra telefonunuza kod gelir. Eklenti sizi kod
-          alanına götürür, kodu yazıp onaylarsınız.</span></li>
-    </ol>
-
-    <h3>Ne yapıyor?</h3>
-    <ul class="duz">
-      <li>Sunucu saatiyle senkronize olur — bilgisayarınızın saati kaymışsa telafi eder.</li>
-      <li>Açılış anına kadar bekler, sonra aramayı saniyede birkaç kez tekrarlar.</li>
-      <li>Seansı görür görmez tıklar, satış türünü seçer, sepete ekler.</li>
-      <li>Her adımda sayfayı ilgili yere kaydırır, böylece ne yaptığını görürsünüz.</li>
-      <li>Bir yerde takılırsa durur ve sayfayı size bırakır.</li>
-    </ul>
-
-    <h3>Gerekenler</h3>
-    <ul class="duz">
-      <li>Google Chrome (veya Edge / Brave gibi Chromium tabanlı bir tarayıcı)</li>
-      <li>spor.istanbul üyeliği</li>
-      <li>Başka hiçbir şey — Python, sürücü, kurulum yok</li>
-    </ul>
-
-    <details>
-      <summary>Eski sürüm (Python + Selenium)</summary>
-      <p style="color:var(--muted);font-size:14.5px">
-        Eklentiden önce aynı işi yapan, bilgisayara Python kuran bir sürüm vardı.
-        Hâlâ çalışıyor ve <code>selenium-surumu-calisir</code> dalında duruyor.
-        Eklenti her açıdan daha basit olduğu için önerilmiyor; yalnızca
-        eklentinin çalışmadığı bir durumda gerekebilir.
+    <div id="kurulumBlok" class="gizli">
+      <p class="not" style="margin-top:14px">
+        Otomasyonu tarayıcınızda çalıştıran küçük bir eklenti gerekiyor. Bu,
+        bilgisayara Python kurmanın yerini alıyor — arayüz aynen bu sayfa.
       </p>
-      <div class="btnSatir">
-        <a class="btn sec" href="indir/saha-kiralama.zip" download>Python sürümü (zip)</a>
-        <a class="btn sec" href="indir/kur.bat" download>kur.bat (Windows)</a>
-        <a class="btn sec" href="indir/kur.command" download>kur.command (Mac)</a>
-      </div>
-    </details>
+      <ol class="kur">
+        <li><b>Eklentiyi indirin</b> <span>12 KB.</span>
+          <div style="margin-top:8px"><a class="ghost" style="display:inline-block;
+            padding:9px 16px;border:1px solid var(--line);border-radius:9px;
+            text-decoration:none;font-weight:600;font-size:13.5px"
+            href="indir/saha-kirala-eklenti.zip" download>eklenti.zip indir</a></div></li>
+        <li><b>Zip'i açın</b>
+          <span>Sağ tık → Tümünü ayıkla (Windows) ya da çift tıklayın (Mac).
+            Çıkan klasörü silmeyin.</span></li>
+        <li><b>Chrome'da eklenti sayfasını açın</b>
+          <span><button class="kopya" id="kopyaBtn">chrome://extensions</button>
+            <span id="kopyaNot" style="color:var(--ok)"></span> — bağlantı olarak
+            açılamıyor, elle yazın ya da kopyalayın.</span></li>
+        <li><b>Geliştirici modunu açın</b> <span>Sağ üstteki anahtar.</span></li>
+        <li><b>Paketlenmemiş öğe yükle</b>
+          <span>2. adımdaki klasörü seçin. Sonra bu sayfayı yenileyin.</span></li>
+      </ol>
+    </div>
   </div>
 
-  <div class="dip">
-    Kişisel kullanım için yapılmıştır. Kendi hesabınızla, kendi rezervasyonunuz
-    için kullanın.
+  <div class="cols">
+    <!-- ===================== SOL: FORM ===================== -->
+    <div>
+      <form id="form" novalidate>
+        <div class="card">
+          <h2><span class="num">1</span> Saha</h2>
+          <div class="alan">
+            <label for="brans">Branş</label>
+            <input id="brans" list="bransList">
+            <datalist id="bransList">
+              <option value="KİRALAMA (BASKETBOL - VOLEYBOL)">
+              <option value="FUTBOL"><option value="MASA TENİSİ"><option value="PADEL">
+              <option value="PİCKLEBALL"><option value="PLAJ FUTBOLU">
+              <option value="PLAJ VOLEYBOLU"><option value="STAT KİRALAMA">
+              <option value="TENİS"><option value="TENİS ÇALIŞMA DUVARI">
+            </datalist>
+            <div class="hata-msg" id="e-brans"></div>
+          </div>
+          <div class="g2">
+            <div class="alan">
+              <label for="tesis">Tesis</label>
+              <input id="tesis" list="tesisList">
+              <datalist id="tesisList">
+                <option value="TAHA AKGÜL SPOR KOMPLEKSİ">
+                <option value="ÇEKMEKÖY SPOR KOMPLEKSİ">
+                <option value="TUZLA KAFKALE SPOR KOMPLEKSİ">
+                <option value="BEYOĞLU SPOR TESİSİ">
+                <option value="ESENLER SPOR KOMPLEKSİ">
+                <option value="HAKKI BAŞAR SPOR KOMPLEKSİ">
+                <option value="HAMZA YERLİKAYA SPOR KOMPLEKSİ">
+                <option value="HİDAYET TÜRKOĞLU SPOR TESİSİ">
+                <option value="İBB RECEP TÜRKOĞLU SPOR KOMPLEKSİ">
+                <option value="KARTAL HASAN DOĞAN SPOR KOMPLEKSİ">
+                <option value="METİN OKTAY SPOR TESİSİ">
+                <option value="TEVFİK AYDENİZ SPOR TESİSİ">
+              </datalist>
+              <div class="hata-msg" id="e-tesis"></div>
+            </div>
+            <div class="alan">
+              <label for="salon">Salon <span class="opt">— boş bırakılabilir</span></label>
+              <input id="salon" list="salonList" placeholder="KAPALI SALON">
+              <datalist id="salonList">
+                <option value="KAPALI SALON"><option value="KAPALI SALON 1">
+                <option value="KAPALI SALON 2">
+              </datalist>
+            </div>
+          </div>
+          <div class="alan">
+            <label for="satisTuru">Satış türü <span class="opt">— rezervasyon formunda seçilecek</span></label>
+            <input id="satisTuru" list="turList">
+            <datalist id="turList"><option value="Voleybol"><option value="Basketbol"></datalist>
+            <div class="hata-msg" id="e-satisTuru"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2><span class="num">2</span> Seans</h2>
+          <div class="g3">
+            <div class="alan">
+              <label for="tarih">Tarih</label>
+              <input id="tarih" type="date">
+              <div class="hata-msg" id="e-tarih"></div>
+            </div>
+            <div class="alan">
+              <label for="basH">Başlangıç</label>
+              <div class="cift"><select id="basH"></select><select id="basD"></select></div>
+            </div>
+            <div class="alan">
+              <label for="bitH">Bitiş</label>
+              <div class="cift"><select id="bitH"></select><select id="bitD"></select></div>
+            </div>
+          </div>
+
+          <div class="ozet" id="ozet"></div>
+
+          <div class="alan">
+            <label for="acilis">Açılış anı <span class="opt">— 72 saat öncesi</span></label>
+            <input id="acilis" type="datetime-local" step="1">
+            <div class="hata-msg" id="e-acilis"></div>
+          </div>
+
+          <details>
+            <summary>Gelişmiş</summary>
+            <div class="kutu">
+              <input id="kuruTest" type="checkbox">
+              <label for="kuruTest">Kuru test
+                <small>Seansı bulur, sepete eklemez. Yeni bir saha/saat denerken kullanın.</small>
+              </label>
+            </div>
+          </details>
+
+          <div class="eylem" style="margin-top:18px">
+            <button id="basla" type="submit">Başlat</button>
+            <button id="durdur" type="button" class="ghost" disabled>Durdur</button>
+          </div>
+          <p class="not">Başlatınca spor.istanbul sekmesi açılır ve otomasyon
+             devralır. O sekmeyi açık bırakın; bu sayfayı kapatabilirsiniz.</p>
+        </div>
+      </form>
+    </div>
+
+    <!-- ===================== SAĞ: DURUM ===================== -->
+    <div>
+      <div class="card">
+        <div class="durumKutu err" id="hataKutu"></div>
+        <div class="satir">
+          <span id="rozet" class="rozet">boşta</span>
+          <div class="donen" id="donen"></div>
+        </div>
+        <div id="geri">--:--:--</div>
+        <div class="geriEtiket" id="geriEtiket">Henüz bir iş başlatılmadı</div>
+        <div class="adimlar" id="adimlar"></div>
+      </div>
+
+      <div class="card">
+        <h2>Kayıt <span class="sag"><button id="temizle" type="button"
+            class="ghost mini">Temizle</button></span></h2>
+        <div id="kayit"><span class="bos">İş başlatılınca burada görünür.</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Nasıl çalışıyor?</h2>
+        <p class="not" style="margin:0">
+          Arayüz bu sayfada, motor tarayıcı eklentisinde. Başlat'a bastığınızda iş
+          eklentiye geçiyor ve spor.istanbul sekmesinde yürüyor — sunucuya hiçbir
+          şey gitmiyor. spor.istanbul'daki <b>açık oturumunuz</b> kullanıldığı için
+          T.C. kimlik numaranız ve şifreniz hiçbir yere yazılmıyor.
+        </p>
+        <details>
+          <summary>Eski sürüm (Python + Selenium)</summary>
+          <p class="not">Bilgisayara Python kuran ilk sürüm hâlâ çalışıyor ve
+             <code>selenium-surumu-calisir</code> dalında duruyor. Eklenti her
+             açıdan daha basit olduğu için önerilmiyor.</p>
+          <div class="eylem">
+            <a class="ghost" style="display:inline-block;padding:8px 14px;
+               border:1px solid var(--line);border-radius:9px;text-decoration:none;
+               font-size:13px" href="indir/saha-kiralama.zip" download>Python sürümü</a>
+          </div>
+        </details>
+      </div>
+    </div>
   </div>
 </div>
+<div id="bildirim"></div>
 
 <script>
-const el = (id) => document.getElementById(id);
-const kacir = (s) => s.replace(/[&<>]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
+const $ = (id) => document.getElementById(id);
+const iki = (n) => String(n).padStart(2, "0");
+const DAKIKALAR = ["00", "15", "30", "35"];
+const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const HATIRLA = ["brans","tesis","salon","satisTuru"];
+const kacir = (s) => String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
-function durum(sinif, baslik, govde, eylem = "") {
-  el("tespit").className = "card " + sinif;
-  el("baslik").textContent = baslik;
-  el("govde").innerHTML = govde;
-  el("eylem").innerHTML = eylem;
+const ADIMLAR = [
+  ["giris","Sekme"], ["filtre","Filtreler"], ["bekleme","Açılış"],
+  ["yoklama","Yakalama"], ["form","Form"], ["sepet","Sepet"], ["sms","SMS"],
+];
+const ETIKET = {
+  bekleme:"açılış bekleniyor", yoklama:"seans yoklanıyor", yakalandi:"seans yakalandı",
+  form:"form dolduruluyor", sepet:"sepete ekleniyor", sms:"SMS bekleniyor",
+  bitti:"tamamlandı", hata:"hata", durduruldu:"durduruldu",
+};
+const TON = {
+  bitti:"ok", hata:"err", durduruldu:"warn", sms:"warn", yakalandi:"ok",
+  bekleme:"run", yoklama:"run", form:"run", sepet:"run",
+};
+const CALISAN = new Set(["bekleme","yoklama","yakalandi","form","sepet","sms"]);
+
+// ------------------------------------------------------------- bildirim
+function bildir(mesaj, tur = "", ms = 3600) {
+  const e = document.createElement("div");
+  e.className = "bldr " + tur; e.textContent = mesaj;
+  $("bildirim").appendChild(e);
+  setTimeout(() => { e.style.transition = "opacity .25s"; e.style.opacity = "0";
+                     setTimeout(() => e.remove(), 260); }, ms);
 }
 
-// --------------------------------------------------------------- tespit
-// Bir web sayfası tarayıcıya kurulu eklentileri soramaz. Ama eklentinin
-// content script'i bu sayfanın DOM'una yazabiliyor: <html> üzerine sürüm
-// bilgisini bırakıyor, biz de onu okuyoruz.
+// --------------------------------------------------- eklenti ile konuşma
+let eklentiVar = false, sonIstek = 0;
+const bekleyen = new Map();
+
+window.addEventListener("message", (o) => {
+  if (o.source !== window) return;
+  const d = o.data;
+  if (!d || d.kaynak !== "saha-kirala-eklenti") return;
+  if (d.istekId && bekleyen.has(d.istekId)) {
+    bekleyen.get(d.istekId)(d); bekleyen.delete(d.istekId);
+  }
+  if (d.olay === "durum") ciz(d.is);
+});
+
+function komut(ad, is) {
+  return new Promise((coz) => {
+    if (!eklentiVar) { coz({ ok:false, hata:"Eklenti kurulu değil." }); return; }
+    const id = ++sonIstek;
+    bekleyen.set(id, coz);
+    window.postMessage({ kaynak:"saha-kirala-sayfa", komut:ad, is, istekId:id }, location.origin);
+    setTimeout(() => { if (bekleyen.has(id)) {
+      bekleyen.delete(id); coz({ ok:false, hata:"Eklenti yanıt vermedi." }); } }, 6000);
+  });
+}
+
+// ------------------------------------------------------------ kutular
+for (const s of ["basH","bitH"])
+  $(s).innerHTML = Array.from({length:24},(_,h)=>`<option>${iki(h)}</option>`).join("");
+for (const s of ["basD","bitD"])
+  $(s).innerHTML = DAKIKALAR.map((d)=>`<option>${d}</option>`).join("");
+
+(function varsayilan() {
+  const d = new Date(); d.setDate(d.getDate()+3);
+  $("tarih").value = `${d.getFullYear()}-${iki(d.getMonth()+1)}-${iki(d.getDate())}`;
+  const n = new Date();
+  const h = (n.getHours() + (n.getMinutes()>=30 ? 1 : 0)) % 24;
+  $("basH").value = iki(h); $("basD").value = "00";
+  $("bitH").value = iki((h+1)%24); $("bitD").value = "00";
+})();
+
+HATIRLA.forEach((id) => {
+  const v = localStorage.getItem("sk_"+id);
+  if (v !== null) $(id).value = v;
+  $(id).addEventListener("change", () => localStorage.setItem("sk_"+id, $(id).value));
+});
+if (!$("brans").value) $("brans").value = "KİRALAMA (BASKETBOL - VOLEYBOL)";
+if (!$("satisTuru").value) $("satisTuru").value = "Voleybol";
+
+// ------------------------------------------------------- 72 saat + özet
+const seansAni = () => {
+  const [y,a,g] = ($("tarih").value||"").split("-").map(Number);
+  if (!y) return null;
+  return new Date(y, a-1, g, +$("basH").value, +$("basD").value, 0);
+};
+function acilisHesapla() {
+  const s = seansAni(); if (!s) return;
+  const o = new Date(s); o.setHours(o.getHours()-72);
+  $("acilis").value = `${o.getFullYear()}-${iki(o.getMonth()+1)}-${iki(o.getDate())}` +
+    `T${iki(o.getHours())}:${iki(o.getMinutes())}:00`;
+}
+function ozetYaz() {
+  const s = seansAni(), k = $("ozet");
+  if (!s) { k.className = "ozet bad"; k.textContent = "Tarih seçilmedi."; return; }
+  const o = new Date($("acilis").value || s);
+  const f = (d) => `${GUNLER[d.getDay()]} ${iki(d.getDate())}.${iki(d.getMonth()+1)}.` +
+                   `${d.getFullYear()} ${iki(d.getHours())}:${iki(d.getMinutes())}`;
+  // Seans, seans saatinden tam 72 saat önce siteye düşüyor. 72 saatten yakınsa
+  // seans zaten açılmıştır — bu olağan durum, hata değil.
+  const acilmis = o.getTime() <= Date.now();
+  k.className = "ozet";
+  k.innerHTML = acilmis
+    ? `<b>${kacir($("tesis").value || "…")}</b> <span class="sessiz">·</span> ` +
+      `<b>${f(s)}–${$("bitH").value}:${$("bitD").value}</b><br>` +
+      `<span class="sessiz">Seans zaten açılmış olmalı (72 saatten yakın). ` +
+      `Başlatınca doğrudan aranacak.</span>`
+    : `<b>${kacir($("tesis").value || "…")}</b> <span class="sessiz">·</span> ` +
+      `<b>${f(s)}–${$("bitH").value}:${$("bitD").value}</b><br>` +
+      `<span class="sessiz">Seans <b>${f(o)}</b> tarihinde açılacak (72 saat öncesi). ` +
+      `O ana kadar beklenip yakalanacak.</span>`;
+}
+["tarih","basH","basD"].forEach((id) => $(id).addEventListener("change", () => {
+  if (id !== "tarih") { $("bitH").value = iki((+$("basH").value+1)%24);
+                        $("bitD").value = $("basD").value; }
+  acilisHesapla(); ozetYaz();
+}));
+["bitH","bitD","acilis","tesis"].forEach((id) => $(id).addEventListener("change", ozetYaz));
+acilisHesapla(); ozetYaz();
+
+// ---------------------------------------------------------- doğrulama
+const KURAL = [
+  ["brans", (v)=> v ? "" : "Branş gerekli."],
+  ["tesis", (v)=> v ? "" : "Tesis gerekli."],
+  ["satisTuru", (v)=> v ? "" : "Satış türü gerekli."],
+  ["tarih", (v)=> v ? "" : "Tarih gerekli."],
+  ["acilis", (v)=> v ? "" : "Açılış anı gerekli."],
+];
+function dogrula() {
+  let ilk = null;
+  for (const [id, k] of KURAL) {
+    const m = k($(id).value.trim());
+    $(id).classList.toggle("bad", !!m);
+    const e = $("e-"+id);
+    if (e) { e.textContent = m; e.classList.toggle("gor", !!m); }
+    if (m && !ilk) ilk = { id, m };
+  }
+  if (ilk) {
+    $(ilk.id).scrollIntoView({ behavior:"smooth", block:"center" });
+    setTimeout(() => $(ilk.id).focus({ preventScroll:true }), 250);
+    bildir(ilk.m, "err");
+  }
+  return !ilk;
+}
+KURAL.forEach(([id]) => $(id).addEventListener("input", () => {
+  $(id).classList.remove("bad");
+  const e = $("e-"+id); if (e) e.classList.remove("gor");
+}));
+
+// ------------------------------------------------------------- başlat
+$("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!dogrula()) return;
+
+  const [y,a,g] = $("tarih").value.split("-");
+  const is = {
+    aktif:true,
+    brans:$("brans").value.trim(), tesis:$("tesis").value.trim(),
+    salon:$("salon").value.trim() || null, satisTuru:$("satisTuru").value.trim(),
+    tarih:`${g}.${a}.${y}`,
+    saat:`${$("basH").value}:${$("basD").value} - ${$("bitH").value}:${$("bitD").value}`,
+    acilis:new Date($("acilis").value).getTime(),
+    sepeteEkle:!$("kuruTest").checked,
+    pesEtme:180, durum:"bekleme", yoklama:0, saatFarki:null,
+    kayit:[{ t:new Date().toTimeString().slice(0,8), m:"Başlatıldı.", tur:"" }],
+  };
+
+  const c = await komut("baslat", is);
+  bildir(c.ok ? "Başlatıldı. spor.istanbul sekmesi açılıyor…" : (c.hata || "Başlatılamadı."),
+         c.ok ? "ok" : "err");
+});
+
+$("durdur").onclick = async () => {
+  const c = await komut("durdur");
+  bildir(c.ok ? "Durduruldu." : (c.hata || "Durdurulamadı."), c.ok ? "warn" : "err");
+};
+$("temizle").onclick = async () => {
+  const c = await komut("temizle");
+  if (c.ok) { $("kayit").innerHTML = '<span class="bos">Temizlendi.</span>'; }
+};
+
+// -------------------------------------------------------------- çizim
+let acilisMs = null, oncekiDurum = null;
+
+function ciz(is) {
+  const calisiyor = Boolean(is && is.aktif && CALISAN.has(is.durum));
+  $("rozet").textContent = is ? (ETIKET[is.durum] || is.durum) : "boşta";
+  $("rozet").className = "rozet " + (is ? (TON[is.durum] || "") : "");
+  $("donen").classList.toggle("on", calisiyor);
+  $("basla").disabled = calisiyor || !eklentiVar;
+  $("durdur").disabled = !calisiyor;
+
+  const hata = is && is.durum === "hata"
+    ? (is.kayit || []).slice().reverse().find((k) => k.tur === "hata")
+    : null;
+  $("hataKutu").textContent = hata ? hata.m : "";
+  $("hataKutu").classList.toggle("gor", !!hata);
+
+  if (is && oncekiDurum && is.durum !== oncekiDurum) {
+    if (is.durum === "bitti") bildir("Tamamlandı.", "ok", 8000);
+    else if (is.durum === "hata") bildir("Hata: " + (hata ? hata.m : ""), "err", 9000);
+    else if (is.durum === "sms") bildir("SMS kodu bekleniyor.", "warn", 8000);
+  }
+  oncekiDurum = is ? is.durum : null;
+
+  $("kayit").innerHTML = (is && is.kayit && is.kayit.length)
+    ? is.kayit.map((k) => `<span class="t">${k.t}</span>  ` +
+        `<span class="${k.tur||""}">${kacir(k.m)}</span>`).join("\n")
+    : '<span class="bos">İş başlatılınca burada görünür.</span>';
+  $("kayit").scrollTop = $("kayit").scrollHeight;
+
+  const i = is ? ADIMLAR.findIndex((a) => a[0] === (is.durum === "yakalandi" ? "yoklama" : is.durum)) : -1;
+  $("adimlar").innerHTML = ADIMLAR.map(([id,ad], n) => {
+    const c = is && is.durum === "bitti" ? "oldu"
+            : (i < 0 ? "" : (n < i ? "oldu" : (n === i ? "simdi" : "")));
+    return `<div class="adim ${c}"><div class="top"></div>${ad}</div>`;
+  }).join("");
+
+  acilisMs = is ? is.acilis : null;
+  $("geriEtiket").textContent = is
+    ? `${is.tesis} · ${is.tarih} ${is.saat}` : "Henüz bir iş başlatılmadı";
+}
+
+function tik() {
+  const e = $("geri");
+  if (!acilisMs) { e.textContent = "--:--:--"; e.className = ""; return; }
+  let f = Math.floor((acilisMs - Date.now())/1000);
+  const gecti = f < 0, a = Math.abs(f);
+  e.textContent = (gecti ? "+" : "") + iki(Math.floor(a/3600)) + ":" +
+                  iki(Math.floor((a%3600)/60)) + ":" + iki(a%60);
+  e.className = gecti ? "canli" : (f < 60 ? "yakin" : "");
+}
+setInterval(tik, 250); tik();
+
+// ------------------------------------------------------- eklenti tespiti
 function eklentiSurumu() {
   return document.documentElement.getAttribute("data-saha-kirala-eklenti");
 }
-
-function kurulu(surum) {
-  durum("ok", "Eklenti kurulu",
-    `Sürüm <b>${kacir(surum)}</b>. Kullanmak için önce spor.istanbul'a giriş yapın,
-     sonra araç çubuğundaki <b>Saha Kiralama</b> simgesine tıklayın.`,
-    `<div class="btnSatir">
-       <a class="btn" href="https://online.spor.istanbul/anasayfa" target="_blank"
-          rel="noopener">spor.istanbul'u aç</a>
-     </div>`);
-  el("kurulum").classList.add("gizli");
+function eklentiKuruldu(surum) {
+  eklentiVar = true;
+  $("eklentiDurum").className = "durumKutu ok";
+  $("eklentiDurum").innerHTML =
+    `<strong>Motor hazır</strong> — eklenti ${kacir(surum)} kurulu. ` +
+    `spor.istanbul'a giriş yaptıysanız aşağıdan başlatabilirsiniz.`;
+  $("kurulumBlok").classList.add("gizli");
+  $("basla").disabled = false;
+}
+function eklentiYok() {
+  eklentiVar = false;
+  $("eklentiDurum").className = "durumKutu yok";
+  $("eklentiDurum").innerHTML =
+    `<strong>Motor kurulu değil</strong> — otomasyonu çalıştıracak eklenti bulunamadı.`;
+  $("kurulumBlok").classList.remove("gizli");
+  $("basla").disabled = true;
 }
 
-function kuruluDegil() {
-  durum("yok", "Eklenti kurulu değil",
-    `Bu tarayıcıda bulunamadı. Aşağıdaki adımlarla iki dakikada kurabilirsiniz.
-     <span style="color:var(--faint)">Az önce kurduysanız bu sayfayı yenileyin.</span>`,
-    `<div class="btnSatir">
-       <button class="btn sec" onclick="location.reload()">Tekrar kontrol et</button>
-     </div>`);
-  el("kurulum").classList.remove("gizli");
-}
+(function tespit() {
+  // "Bulunamadı" sonucu KESİN DEĞİL: kullanıcı eklentiyi tam da bu sayfa
+  // açıkken kuruyor. Aramayı bırakırsak, kurup geri döndüğünde sayfa hâlâ
+  // "kurulu değil" der ve elle yenilemesi gerekir. Bu yüzden yalnızca
+  // BULUNDUĞUNDA duruyoruz; bulunamadıysa izlemeye devam.
+  let bulundu = false;
 
-(function tespitEt() {
-  const hemen = eklentiSurumu();
-  if (hemen) return kurulu(hemen);
+  const kontrol = () => {
+    if (bulundu) return true;
+    const s = eklentiSurumu();
+    if (!s) return false;
+    bulundu = true;
+    eklentiKuruldu(s);
+    return true;
+  };
 
-  // Content script bizden sonra çalışmış olabilir; hem olayı dinliyoruz hem de
-  // kısa süre yokluyoruz.
-  let bitti = false;
-  const tamam = (surum) => { if (!bitti) { bitti = true; kurulu(surum); } };
-
-  window.addEventListener("saha-kirala-eklenti", (e) => tamam(e.detail.surum));
+  window.addEventListener("saha-kirala-eklenti", kontrol);
   window.dispatchEvent(new CustomEvent("saha-kirala-sor"));
 
-  let kalan = 12;                       // ~1.8 sn
-  const zaman = setInterval(() => {
-    const s = eklentiSurumu();
-    if (s) { clearInterval(zaman); return tamam(s); }
-    if (--kalan <= 0) { clearInterval(zaman); if (!bitti) { bitti = true; kuruluDegil(); } }
+  if (kontrol()) return;
+
+  // İlk ~2 sn sık, sonrasında seyrek yokla; ayrıca sekmeye her dönüşte bak.
+  let kalan = 14;
+  const hizli = setInterval(() => {
+    if (kontrol()) { clearInterval(hizli); return; }
+    if (--kalan <= 0) {
+      clearInterval(hizli);
+      eklentiYok();
+      setInterval(kontrol, 2000);
+    }
   }, 150);
 
-  // Kullanıcı sekmeye geri döndüğünde (kurulumdan sonra) yeniden bak.
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden || bitti) return;
-    const s = eklentiSurumu();
-    if (s) tamam(s);
+    if (!document.hidden) kontrol();
   });
+  window.addEventListener("focus", kontrol);
 })();
 
-// ---------------------------------------------------------- kopyala
-el("kopyaBtn").onclick = async () => {
-  try {
-    await navigator.clipboard.writeText("chrome://extensions");
-    el("kopyaNot").textContent = "kopyalandı";
-    setTimeout(() => { el("kopyaNot").textContent = ""; }, 2000);
-  } catch {
-    el("kopyaNot").textContent = "kopyalanamadı, elle yazın";
-  }
+$("kopyaBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText("chrome://extensions");
+        $("kopyaNot").textContent = "kopyalandı";
+        setTimeout(() => { $("kopyaNot").textContent = ""; }, 2000); }
+  catch { $("kopyaNot").textContent = "kopyalanamadı, elle yazın"; }
 };
+
+ciz(null);
 </script>
 </body>
 </html>

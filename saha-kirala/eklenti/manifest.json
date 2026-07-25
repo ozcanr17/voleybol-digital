@@ -1,14 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Saha Kiralama Otomasyonu",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "spor.istanbul'da seans açılır açılmaz sahayı yakalar. Kimlik bilgisi istemez — açık oturumunuzu kullanır.",
   "permissions": [
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://online.spor.istanbul/*"
   ],
+  "background": {
+    "service_worker": "arka.js"
+  },
   "action": {
     "default_title": "Saha Kiralama",
     "default_popup": "popup.html"
