@@ -30,9 +30,6 @@
   .wrap { max-width:1120px; margin:0 auto; padding:26px 18px 72px; }
   a { color:var(--accent); }
 
-  .home { display:inline-flex; gap:6px; color:var(--muted); text-decoration:none;
-          font-size:13.5px; margin-bottom:18px; }
-  .home:hover { color:var(--accent); }
   h1 { font-size:23px; margin:0 0 5px; letter-spacing:-.01em; }
   .lede { color:var(--muted); margin:0 0 20px; font-size:14px; max-width:64ch; }
 
@@ -66,7 +63,6 @@
   .g2 { display:grid; grid-template-columns:1fr 1fr; gap:13px; }
   .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:13px; }
   @media (max-width:460px) { .g2,.g3 { grid-template-columns:1fr; } }
-  .cift { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
 
   /* Aranabilir açılır kutu (native datalist yerine — seçimden sonra da tam
      listeyi her tıklamada açar). */
@@ -88,8 +84,8 @@
   .combo-oge:hover, .combo-oge.etkin { background:var(--accent-soft); color:var(--accent); }
   .combo-bos { padding:8px 10px; font-size:13px; color:var(--muted); }
 
-  /* Özel tarih seçici (takvim popup) */
-  .tarih-alan { position:relative; }
+  /* Özel tarih/saat seçiciler (takvim ve saat popup'ları) */
+  .secici-alan { position:relative; }
   .secici-btn { width:100%; display:flex; align-items:center; justify-content:space-between;
                 gap:8px; padding:10px 12px; border:1px solid var(--line); border-radius:9px;
                 background:var(--raise); color:var(--ink); font:inherit; font-size:14px;
@@ -116,6 +112,18 @@
   .tk-gun.bugun { box-shadow:inset 0 0 0 1px var(--accent); }
   .tk-gun.secili, .tk-gun.secili:hover { background:var(--accent); color:#fff; }
   .tk-gun:disabled { color:var(--faint); opacity:.38; cursor:not-allowed; }
+
+  /* Özel saat/dakika seçici (aynı popup stili, iki kaydırılabilir sütun) */
+  .zaman-pop { position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:148px;
+               background:var(--card); border:1px solid var(--line); border-radius:12px;
+               box-shadow:var(--shadow); padding:8px; display:flex; gap:6px; }
+  .zaman-pop.gizli { display:none; }
+  .zaman-kol { flex:1; max-height:206px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+  .zaman-oge { flex:none; padding:7px 0; border:0; border-radius:8px; background:transparent;
+               color:var(--ink); font:inherit; font-size:13px; font-weight:600; text-align:center;
+               cursor:pointer; font-variant-numeric:tabular-nums; }
+  .zaman-oge:hover { background:var(--accent-soft); color:var(--accent); filter:none; }
+  .zaman-oge.secili, .zaman-oge.secili:hover { background:var(--accent); color:#fff; }
 
   .kutu { display:flex; align-items:flex-start; gap:9px; padding:7px 0; }
   .kutu input { width:17px; height:17px; flex:none; margin-top:1px; accent-color:var(--accent); }
@@ -222,7 +230,6 @@
 </head>
 <body>
 <div class="wrap">
-  <a class="home" href="/">&larr; Voleybol Digital</a>
   <h1>Saha Kiralama Otomasyonu</h1>
   <p class="lede">Seans açıldığı saniyede sahayı sepete ekler. Tarayıcınızda
      çalışır — bilgisayarınıza hiçbir şey kurulmaz, şifreniz hiçbir yere girilmez.</p>
@@ -291,7 +298,7 @@
           <div class="g3">
             <div class="alan">
               <label for="tarihAc">Tarih</label>
-              <div class="tarih-alan">
+              <div class="secici-alan">
                 <input id="tarih" type="date" hidden>
                 <button type="button" id="tarihAc" class="secici-btn" aria-haspopup="dialog">
                   <span id="tarihGoster">Tarih seçin</span>
@@ -302,12 +309,26 @@
               <div class="hata-msg" id="e-tarih"></div>
             </div>
             <div class="alan">
-              <label for="basH">Başlangıç</label>
-              <div class="cift"><select id="basH"></select><select id="basD"></select></div>
+              <label for="basAc">Başlangıç</label>
+              <div class="secici-alan">
+                <select id="basH" hidden></select><select id="basD" hidden></select>
+                <button type="button" id="basAc" class="secici-btn" aria-haspopup="dialog">
+                  <span id="basGoster">--:--</span>
+                  <span class="secici-ok" aria-hidden="true">▾</span>
+                </button>
+                <div id="basPop" class="zaman-pop gizli" role="dialog" aria-label="Başlangıç saati"></div>
+              </div>
             </div>
             <div class="alan">
-              <label for="bitH">Bitiş</label>
-              <div class="cift"><select id="bitH"></select><select id="bitD"></select></div>
+              <label for="bitAc">Bitiş</label>
+              <div class="secici-alan">
+                <select id="bitH" hidden></select><select id="bitD" hidden></select>
+                <button type="button" id="bitAc" class="secici-btn" aria-haspopup="dialog">
+                  <span id="bitGoster">--:--</span>
+                  <span class="secici-ok" aria-hidden="true">▾</span>
+                </button>
+                <div id="bitPop" class="zaman-pop gizli" role="dialog" aria-label="Bitiş saati"></div>
+              </div>
             </div>
           </div>
 
@@ -547,9 +568,7 @@ function makeCombo(inputId, secenekler) {
   };
 }
 
-const BRANS_SEC = ["KİRALAMA (BASKETBOL - VOLEYBOL)", "FUTBOL", "MASA TENİSİ",
-  "PADEL", "PİCKLEBALL", "PLAJ FUTBOLU", "PLAJ VOLEYBOLU", "STAT KİRALAMA",
-  "TENİS", "TENİS ÇALIŞMA DUVARI"];
+const BRANS_SEC = ["KİRALAMA (BASKETBOL - VOLEYBOL)"];
 const TESIS_SEC = ["TAHA AKGÜL SPOR KOMPLEKSİ", "ÇEKMEKÖY SPOR KOMPLEKSİ",
   "TUZLA KAFKALE SPOR KOMPLEKSİ", "BEYOĞLU SPOR TESİSİ", "ESENLER SPOR KOMPLEKSİ",
   "HAKKI BAŞAR SPOR KOMPLEKSİ", "HAMZA YERLİKAYA SPOR KOMPLEKSİ",
@@ -601,7 +620,8 @@ function ozetYaz() {
 }
 ["tarih","basH","basD"].forEach((id) => $(id).addEventListener("change", () => {
   if (id !== "tarih") { $("bitH").value = iki((+$("basH").value+1)%24);
-                        $("bitD").value = $("basD").value; }
+                        $("bitD").value = $("basD").value;
+                        bitZaman.yenile(); }
   acilisHesapla(); ozetYaz();
 }));
 ["bitH","bitD","acilis","tesis"].forEach((id) => $(id).addEventListener("change", ozetYaz));
@@ -682,6 +702,58 @@ acilisHesapla(); ozetYaz();
   inp.addEventListener("change", metniYaz);
   metniYaz();
 })();
+
+// ------------------------------------------------------- saat/dakika seçici
+// Gizli <select>'ler (basH/basD/bitH/bitD) veriyi tutmaya devam ediyor; görünür
+// kısım aynı popup stilinde iki kaydırılabilir sütun (saat, dakika).
+function saatSeciciKur(saatId, dakikaId, btnId, gosterId, popId) {
+  const saatSel = $(saatId), dakSel = $(dakikaId), btn = $(btnId),
+        goster = $(gosterId), pop = $(popId);
+  const SAATLER = Array.from({length:24}, (_,h) => iki(h));
+
+  function metniYaz() { goster.textContent = `${saatSel.value}:${dakSel.value}`; }
+  function ciz() {
+    const kol = (deger, secilen) => deger.map((v) =>
+      `<button type="button" class="zaman-oge${v===secilen?" secili":""}" data-v="${v}">${v}</button>`
+    ).join("");
+    pop.innerHTML =
+      `<div class="zaman-kol" data-tur="saat">${kol(SAATLER, saatSel.value)}</div>` +
+      `<div class="zaman-kol" data-tur="dakika">${kol(DAKIKALAR, dakSel.value)}</div>`;
+  }
+  function ac() {
+    ciz(); pop.classList.remove("gizli");
+    pop.querySelectorAll(".zaman-oge.secili").forEach((el) => el.scrollIntoView({ block:"center" }));
+  }
+  const kapa = () => pop.classList.add("gizli");
+
+  // ciz() seçimde panelin innerHTML'ini yeniden yazıyor; bu, tıklanan orijinal
+  // düğümü DOM'dan koparıyor. Olay document'a kabarırken "pop.contains(e.target)"
+  // artık false dönüp paneli yanlışlıkla kapatıyordu. Bu bayrak o yanlış
+  // kapanmayı engelliyor (panel seçimden sonra açık kalmalı: hem saat hem
+  // dakika art arda seçilebilsin).
+  let icTiklama = false;
+  btn.addEventListener("click", () => pop.classList.contains("gizli") ? ac() : kapa());
+  pop.addEventListener("click", (e) => {
+    const oge = e.target.closest(".zaman-oge"); if (!oge) return;
+    icTiklama = true;
+    const tur = oge.closest(".zaman-kol").dataset.tur;
+    const sel = tur === "saat" ? saatSel : dakSel;
+    sel.value = oge.dataset.v;
+    sel.dispatchEvent(new Event("change", { bubbles:true }));
+    ciz(); metniYaz();
+  });
+  document.addEventListener("click", (e) => {
+    if (icTiklama) { icTiklama = false; return; }
+    if (!pop.contains(e.target) && !btn.contains(e.target)) kapa();
+  });
+  saatSel.addEventListener("change", metniYaz);
+  dakSel.addEventListener("change", metniYaz);
+  metniYaz();
+
+  return { yenile: metniYaz };
+}
+const basZaman = saatSeciciKur("basH", "basD", "basAc", "basGoster", "basPop");
+const bitZaman = saatSeciciKur("bitH", "bitD", "bitAc", "bitGoster", "bitPop");
 
 // ---------------------------------------------------------- doğrulama
 const KURAL = [
