@@ -4,8 +4,12 @@
 # hatası veriyor. Kim klonlarsa klonlasın doğru olsun diye burada zorluyoruz.
 * text=auto eol=lf
 
-*.bat text eol=crlf
-*.cmd text eol=crlf
+# .bat dosyalari BILEREK "-text": git metin dosyalarini depoda daima LF olarak
+# saklar ve CRLF'i yalnizca checkout sirasinda uygular. GitHub Pages ise dosyayi
+# depodaki haliyle servis ediyor -- yani "eol=crlf" deseydik siteden indirilen
+# kur.bat yine LF olurdu. Normalizasyonu kapatinca baytlar oldugu gibi kaliyor.
+*.bat -text
+*.cmd -text
 
 *.command text eol=lf
 *.sh      text eol=lf
