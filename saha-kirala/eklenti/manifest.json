@@ -1,14 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Saha Kiralama Otomasyonu",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "spor.istanbul'da seans açılır açılmaz sahayı yakalar. Kimlik bilgisi istemez — açık oturumunuzu kullanır.",
-  "default_locale": "tr",
 
-  "permissions": ["storage", "alarms"],
-  "host_permissions": [
-    "https://online.spor.istanbul/*"
-  ],
+  "permissions": ["storage"],
+  "host_permissions": ["https://online.spor.istanbul/*"],
 
   "action": {
     "default_title": "Saha Kiralama",
@@ -17,22 +14,17 @@
 
   "content_scripts": [
     {
-      "//": "Sayfa dünyasında çalışır: sitenin alert() kutusunu bastırır. İzole dünyadan sayfanın window.alert'ine erişilemez.",
       "matches": ["https://online.spor.istanbul/*"],
       "js": ["sayfa.js"],
       "run_at": "document_start",
-      "world": "MAIN",
-      "all_frames": false
+      "world": "MAIN"
     },
     {
-      "//": "Asıl otomasyon. Her sayfa yüklemesinde yeniden çalışır; postback'ler akışı kesmez.",
       "matches": ["https://online.spor.istanbul/*"],
       "js": ["icerik.js"],
-      "run_at": "document_end",
-      "all_frames": false
+      "run_at": "document_end"
     },
     {
-      "//": "Tanıtım sayfasının eklentinin kurulu olduğunu anlaması için.",
       "matches": [
         "https://voleybol.digital/*",
         "https://www.voleybol.digital/*",

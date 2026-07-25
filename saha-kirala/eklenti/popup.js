@@ -64,13 +64,20 @@
     const s = seansAni(), kutu = $("ozet");
     if (!s) { kutu.className = "ozet bad"; kutu.textContent = "Tarih seçilmedi."; return; }
     const o = new Date($("acilis").value || s);
-    const gecti = o.getTime() < Date.now();
     const f = (d) => `${GUNLER[d.getDay()]} ${iki(d.getDate())}.${iki(d.getMonth() + 1)} ` +
                      `${iki(d.getHours())}:${iki(d.getMinutes())}`;
-    kutu.className = "ozet" + (gecti ? " bad" : "");
-    kutu.textContent = gecti
-      ? `Açılış anı geçmişte (${f(o)}) — başlatırsanız hemen yoklamaya geçer.`
-      : `${f(o)} açılışında ${f(s)} seansı yakalanacak.`;
+
+    // Seanslar seans saatinden tam 72 saat önce siteye düşüyor. Yani:
+    //   - seansa 72 saatten ÇOK varsa  -> o ana kadar beklenecek
+    //   - 72 saatten AZ varsa          -> seans zaten açılmış, doğrudan aranır
+    // İkincisi olağan durum; hata değil, o yüzden kırmızı göstermiyoruz.
+    const acilmis = o.getTime() <= Date.now();
+    kutu.className = "ozet";
+    kutu.textContent = acilmis
+      ? `${f(s)} seansı zaten açılmış olmalı (72 saatten yakın). ` +
+        `Başlatınca doğrudan aranacak.`
+      : `${f(s)} seansı ${f(o)} tarihinde açılacak (72 saat öncesi). ` +
+        `O ana kadar beklenip yakalanacak.`;
   }
 
   ["tarih", "basH", "basD"].forEach((id) => $(id).addEventListener("change", () => {
