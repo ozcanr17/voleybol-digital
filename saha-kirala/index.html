@@ -68,6 +68,26 @@
   @media (max-width:460px) { .g2,.g3 { grid-template-columns:1fr; } }
   .cift { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
 
+  /* Aranabilir açılır kutu (native datalist yerine — seçimden sonra da tam
+     listeyi her tıklamada açar). */
+  .combo { position:relative; }
+  .combo input { padding-right:34px; }
+  .combo-sil { position:absolute; top:50%; transform:translateY(-50%); right:7px;
+               width:23px; height:23px; padding:0; border:0; border-radius:6px;
+               background:transparent; color:var(--faint); font-size:17px; line-height:1;
+               cursor:pointer; display:none; place-items:center; }
+  .combo.dolu .combo-sil { display:grid; }
+  .combo-sil:hover:not(:disabled) { background:var(--line2); color:var(--ink); filter:none; }
+  .combo-panel { position:absolute; z-index:30; left:0; right:0; top:calc(100% + 4px);
+                 max-height:244px; overflow-y:auto; background:var(--card);
+                 border:1px solid var(--line); border-radius:10px;
+                 box-shadow:var(--shadow); padding:4px; display:none; }
+  .combo-panel.acik { display:block; }
+  .combo-oge { padding:8px 10px; border-radius:7px; font-size:14px; cursor:pointer;
+               white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .combo-oge:hover, .combo-oge.etkin { background:var(--accent-soft); color:var(--accent); }
+  .combo-bos { padding:8px 10px; font-size:13px; color:var(--muted); }
+
   .kutu { display:flex; align-items:flex-start; gap:9px; padding:7px 0; }
   .kutu input { width:17px; height:17px; flex:none; margin-top:1px; accent-color:var(--accent); }
   .kutu label { margin:0; color:var(--ink); font-size:13.5px; cursor:pointer; }
@@ -216,49 +236,23 @@
           <h2><span class="num">1</span> Saha</h2>
           <div class="alan">
             <label for="brans">Branş</label>
-            <input id="brans" list="bransList">
-            <datalist id="bransList">
-              <option value="KİRALAMA (BASKETBOL - VOLEYBOL)">
-              <option value="FUTBOL"><option value="MASA TENİSİ"><option value="PADEL">
-              <option value="PİCKLEBALL"><option value="PLAJ FUTBOLU">
-              <option value="PLAJ VOLEYBOLU"><option value="STAT KİRALAMA">
-              <option value="TENİS"><option value="TENİS ÇALIŞMA DUVARI">
-            </datalist>
+            <input id="brans" autocomplete="off" placeholder="Branş seçin">
             <div class="hata-msg" id="e-brans"></div>
           </div>
           <div class="g2">
             <div class="alan">
               <label for="tesis">Tesis</label>
-              <input id="tesis" list="tesisList">
-              <datalist id="tesisList">
-                <option value="TAHA AKGÜL SPOR KOMPLEKSİ">
-                <option value="ÇEKMEKÖY SPOR KOMPLEKSİ">
-                <option value="TUZLA KAFKALE SPOR KOMPLEKSİ">
-                <option value="BEYOĞLU SPOR TESİSİ">
-                <option value="ESENLER SPOR KOMPLEKSİ">
-                <option value="HAKKI BAŞAR SPOR KOMPLEKSİ">
-                <option value="HAMZA YERLİKAYA SPOR KOMPLEKSİ">
-                <option value="HİDAYET TÜRKOĞLU SPOR TESİSİ">
-                <option value="İBB RECEP TÜRKOĞLU SPOR KOMPLEKSİ">
-                <option value="KARTAL HASAN DOĞAN SPOR KOMPLEKSİ">
-                <option value="METİN OKTAY SPOR TESİSİ">
-                <option value="TEVFİK AYDENİZ SPOR TESİSİ">
-              </datalist>
+              <input id="tesis" autocomplete="off" placeholder="Önce branş seçin">
               <div class="hata-msg" id="e-tesis"></div>
             </div>
             <div class="alan">
               <label for="salon">Salon <span class="opt">— boş bırakılabilir</span></label>
-              <input id="salon" list="salonList" placeholder="KAPALI SALON">
-              <datalist id="salonList">
-                <option value="KAPALI SALON"><option value="KAPALI SALON 1">
-                <option value="KAPALI SALON 2">
-              </datalist>
+              <input id="salon" autocomplete="off" placeholder="KAPALI SALON">
             </div>
           </div>
           <div class="alan">
             <label for="satisTuru">Satış türü <span class="opt">— rezervasyon formunda seçilecek</span></label>
-            <input id="satisTuru" list="turList">
-            <datalist id="turList"><option value="Voleybol"><option value="Basketbol"></datalist>
+            <input id="satisTuru" autocomplete="off" placeholder="Voleybol">
             <div class="hata-msg" id="e-satisTuru"></div>
           </div>
         </div>
@@ -356,7 +350,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const iki = (n) => String(n).padStart(2, "0");
-const DAKIKALAR = ["00", "15", "30", "35"];
+const DAKIKALAR = ["00", "15", "30", "45"];
 const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
 const HATIRLA = ["brans","tesis","salon","satisTuru"];
 const kacir = (s) => String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
@@ -435,6 +429,107 @@ HATIRLA.forEach((id) => {
 });
 if (!$("brans").value) $("brans").value = "KİRALAMA (BASKETBOL - VOLEYBOL)";
 if (!$("satisTuru").value) $("satisTuru").value = "Voleybol";
+
+// ---------------------------------------------------- aranabilir açılır kutu
+// Native <input list="datalist"> bir seçim yapıldıktan sonra tekrar tıklanınca
+// listeyi açmıyordu (Chrome/Edge davranışı) — kullanıcı "alan kilitlendi"
+// sanıyordu. Bu bileşen her focus/click'te DAİMA tam listeyi açar.
+function makeCombo(inputId, secenekler) {
+  const input = $(inputId);
+  const sar = document.createElement("div");
+  sar.className = "combo";
+  input.parentNode.insertBefore(sar, input);
+  sar.appendChild(input);
+
+  const sil = document.createElement("button");
+  sil.type = "button"; sil.className = "combo-sil";
+  sil.setAttribute("aria-label", "Temizle"); sil.textContent = "×";
+  sar.appendChild(sil);
+
+  const panel = document.createElement("div");
+  panel.className = "combo-panel"; panel.setAttribute("role", "listbox");
+  sar.appendChild(panel);
+
+  let ogeler = secenekler.slice();
+  let suzulen = [];
+  let etkin = -1;
+  let seciliyor = false;   // programatik seçim sırasında input olayı paneli yeniden açmasın
+
+  function ciz(metin) {
+    const f = (metin || "").toLocaleLowerCase("tr");
+    suzulen = f ? ogeler.filter((o) => o.toLocaleLowerCase("tr").includes(f)) : ogeler;
+    panel.innerHTML = suzulen.length
+      ? suzulen.map((o, i) => `<div class="combo-oge" role="option" data-i="${i}">${kacir(o)}</div>`).join("")
+      : `<div class="combo-bos">Eşleşme yok — yazdığınız değer olduğu gibi kullanılacak.</div>`;
+    etkin = -1;
+  }
+  function vurgula() {
+    [...panel.children].forEach((el, i) => el.classList.toggle("etkin", i === etkin));
+    const el = panel.children[etkin];
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }
+  function ac(metin) { ciz(metin); panel.classList.add("acik"); }
+  function kapa() { panel.classList.remove("acik"); }
+  function doluMu() { sar.classList.toggle("dolu", Boolean(input.value)); }
+  function sec(v) {
+    input.value = v; doluMu(); kapa();
+    seciliyor = true;
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    seciliyor = false;
+  }
+
+  input.addEventListener("focus", () => ac(""));
+  input.addEventListener("click", () => ac(""));
+  input.addEventListener("input", () => { if (seciliyor) return; ac(input.value); doluMu(); });
+  input.addEventListener("keydown", (e) => {
+    if (!panel.classList.contains("acik")) {
+      if (e.key === "ArrowDown" || e.key === "Enter") ac(input.value);
+      return;
+    }
+    if (e.key === "ArrowDown") { e.preventDefault(); etkin = Math.min(etkin + 1, suzulen.length - 1); vurgula(); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); etkin = Math.max(etkin - 1, 0); vurgula(); }
+    else if (e.key === "Enter") { if (etkin >= 0) { e.preventDefault(); sec(suzulen[etkin]); } else kapa(); }
+    else if (e.key === "Escape") { kapa(); }
+  });
+  panel.addEventListener("mousedown", (e) => {
+    const o = e.target.closest(".combo-oge"); if (!o) return;
+    e.preventDefault(); sec(suzulen[Number(o.dataset.i)]);
+  });
+  sil.addEventListener("mousedown", (e) => e.preventDefault());
+  sil.addEventListener("click", () => {
+    input.value = ""; doluMu(); input.focus(); ac("");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  document.addEventListener("click", (e) => { if (!sar.contains(e.target)) kapa(); });
+
+  return {
+    // İleride branşa göre canlı liste bağlanınca: combos.tesis.setOptions(yeni)
+    setOptions(yeni) { ogeler = yeni.slice(); if (panel.classList.contains("acik")) ciz(input.value); },
+    tazele: doluMu,
+  };
+}
+
+const BRANS_SEC = ["KİRALAMA (BASKETBOL - VOLEYBOL)", "FUTBOL", "MASA TENİSİ",
+  "PADEL", "PİCKLEBALL", "PLAJ FUTBOLU", "PLAJ VOLEYBOLU", "STAT KİRALAMA",
+  "TENİS", "TENİS ÇALIŞMA DUVARI"];
+const TESIS_SEC = ["TAHA AKGÜL SPOR KOMPLEKSİ", "ÇEKMEKÖY SPOR KOMPLEKSİ",
+  "TUZLA KAFKALE SPOR KOMPLEKSİ", "BEYOĞLU SPOR TESİSİ", "ESENLER SPOR KOMPLEKSİ",
+  "HAKKI BAŞAR SPOR KOMPLEKSİ", "HAMZA YERLİKAYA SPOR KOMPLEKSİ",
+  "HİDAYET TÜRKOĞLU SPOR TESİSİ", "İBB RECEP TÜRKOĞLU SPOR KOMPLEKSİ",
+  "KARTAL HASAN DOĞAN SPOR KOMPLEKSİ", "METİN OKTAY SPOR TESİSİ",
+  "TEVFİK AYDENİZ SPOR TESİSİ"];
+const SALON_SEC = ["KAPALI SALON", "KAPALI SALON 1", "KAPALI SALON 2"];
+const TUR_SEC = ["Voleybol", "Basketbol"];
+
+const combos = {
+  brans: makeCombo("brans", BRANS_SEC),
+  tesis: makeCombo("tesis", TESIS_SEC),
+  salon: makeCombo("salon", SALON_SEC),
+  satisTuru: makeCombo("satisTuru", TUR_SEC),
+};
+Object.values(combos).forEach((c) => c.tazele());
 
 // ------------------------------------------------------- 72 saat + özet
 const seansAni = () => {
