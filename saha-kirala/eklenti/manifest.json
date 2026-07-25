@@ -1,27 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Saha Kiralama Otomasyonu",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "spor.istanbul'da seans açılır açılmaz sahayı yakalar. Kimlik bilgisi istemez — açık oturumunuzu kullanır.",
-
-  "permissions": ["storage"],
-  "host_permissions": ["https://online.spor.istanbul/*"],
-
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://online.spor.istanbul/*"
+  ],
   "action": {
     "default_title": "Saha Kiralama",
     "default_popup": "popup.html"
   },
-
   "content_scripts": [
     {
-      "matches": ["https://online.spor.istanbul/*"],
-      "js": ["sayfa.js"],
+      "matches": [
+        "https://online.spor.istanbul/*"
+      ],
+      "js": [
+        "sayfa.js"
+      ],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://online.spor.istanbul/*"],
-      "js": ["icerik.js"],
+      "matches": [
+        "https://online.spor.istanbul/*"
+      ],
+      "js": [
+        "icerik.js"
+      ],
       "run_at": "document_end"
     },
     {
@@ -30,7 +39,9 @@
         "https://www.voleybol.digital/*",
         "https://ozcanr17.github.io/*"
       ],
-      "js": ["site.js"],
+      "js": [
+        "site.js"
+      ],
       "run_at": "document_start"
     }
   ]

@@ -123,7 +123,52 @@
     return null;
   }
 
+  const gorunurMu = (el) => {
+    if (!el) return false;
+    const r = el.getBoundingClientRect();
+    return r.width > 0 && r.height > 0;
+  };
+
+  // Anasayfa sekmeli: varsayılan olarak "Üyelik Al" açık geliyor ve kiralama
+  // filtreleri o sekmede yok. Önce "Kiralama Yap"a geçmek şart --- bu adımı
+  // atladığım için otomasyon "Branş listesi dolmadı" diyerek duruyordu.
+  async function kiralamaSekmesiniAc() {
+    const hazir = () => {
+      const kap = document.getElementById("select2-ddlKiralikBransFiltre-container");
+      const sec = document.getElementById("ddlKiralikBransFiltre");
+      return gorunurMu(kap) && sec && sec.options.length > 1;
+    };
+    if (hazir()) return true;
+
+    // Sekmeyi asıl açan, onclick="tabYukle('kytabdetay')" taşıyan <a id="kytab">.
+    // Onu saran <li>'ye tıklamak HİÇBİR ŞEY yapmıyor (ölçüldü: li -> 0 seçenek,
+    // a -> 11 seçenek). Metne göre arama yaparsak querySelectorAll belge sırası
+    // döndürdüğü için dıştaki <li> önce geliyor ve yanlış elemanı tıklıyorduk.
+    const sekme =
+      document.getElementById("kytab") ||
+      [...document.querySelectorAll("a.nav-link, span.nav-text")]
+        .find((e) => e.textContent.trim() === "Kiralama Yap" && gorunurMu(e));
+
+    if (sekme) {
+      sekme.click();
+      await kaydet("'Kiralama Yap' sekmesine geçildi.");
+    }
+
+    const bitis = Date.now() + 10000;
+    while (Date.now() < bitis) {
+      if (hazir()) return true;
+      await bekle(200);
+    }
+    return false;
+  }
+
   async function anasayfaAdimi(is) {
+    if (!(await kiralamaSekmesiniAc())) {
+      return bitir("hata",
+        "'Kiralama Yap' sekmesi açılamadı ya da filtreler yüklenmedi. " +
+        "spor.istanbul'a giriş yapmış olduğunuzdan emin olup tekrar deneyin.", "hata");
+    }
+
     const alanlar = [
       ["ddlKiralikBransFiltre", is.brans, "Branş"],
       ["ddlKiralikTesisFiltre", is.tesis, "Tesis"],
