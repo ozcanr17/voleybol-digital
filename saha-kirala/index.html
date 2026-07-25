@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Saha Kiralama Otomasyonu | Voleybol Digital</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <meta name="description" content="spor.istanbul'da seans açılır açılmaz sahayı sepete ekler. Tarayıcıda çalışır, bilgisayara kurulum gerektirmez.">
 <style>
   :root {
@@ -130,8 +131,10 @@
   .liste-pop.dar .pop-oge { text-align:center; padding:8px 4px; font-weight:600;
                             font-variant-numeric:tabular-nums; }
 
-  /* Hızlı seçim çipleri (Bugün / Yarın / +3 gün, 19:00 / 20:00 / 21:00) */
-  .cip-satir { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; }
+  /* Hızlı seçim çipleri — gün ve saat kısayolları tek sırada yan yana */
+  .cip-satir { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:11px; }
+  .cip-grup { display:flex; flex-wrap:wrap; gap:6px; }
+  .cip-ayrac { width:1px; align-self:stretch; background:var(--line); flex:none; }
   .cip { padding:5px 12px; border-radius:999px; border:1px solid var(--line);
          background:var(--raise); color:var(--muted); font-size:12px; font-weight:500;
          cursor:pointer; transition:border-color .12s, color .12s, background .12s; }
@@ -139,6 +142,13 @@
                               background:var(--raise); filter:none; }
   .cip.etkin { background:var(--accent-soft); border-color:var(--accent);
                color:var(--accent); font-weight:700; }
+
+  /* Salt gösterim alanı (açılış anı): otomatik hesaplanır — elle değiştirilmez,
+     seçilip kopyalanmaz, tarayıcının takvim düğmesi de çıkmaz. */
+  .salt-oku { padding:10px 12px; border:1px solid var(--line); border-radius:9px;
+              background:var(--line2); color:var(--muted); font-size:14px;
+              user-select:none; -webkit-user-select:none; cursor:default; }
+  .salt-oku.bad { border-color:var(--err); box-shadow:0 0 0 3px var(--err-soft); }
 
   .kutu { display:flex; align-items:flex-start; gap:9px; padding:7px 0; }
   .kutu input { width:17px; height:17px; flex:none; margin-top:1px; accent-color:var(--accent); }
@@ -397,14 +407,18 @@
             </div>
           </div>
 
-          <div class="cip-satir" id="hizliTarih"></div>
-          <div class="cip-satir" id="hizliSaat"></div>
+          <div class="cip-satir">
+            <div class="cip-grup" id="hizliTarih"></div>
+            <span class="cip-ayrac" aria-hidden="true"></span>
+            <div class="cip-grup" id="hizliSaat"></div>
+          </div>
 
           <div class="ozet" id="ozet"></div>
 
           <div class="alan">
-            <label for="acilis">Açılış anı <span class="opt">— 72 saat öncesi</span></label>
-            <input id="acilis" type="datetime-local" step="1">
+            <label>Açılış anı <span class="opt">— 72 saat öncesi</span></label>
+            <input id="acilis" type="datetime-local" step="1" hidden>
+            <div id="acilisGoster" class="salt-oku"></div>
             <div class="hata-msg" id="e-acilis"></div>
           </div>
 
@@ -477,7 +491,8 @@ const $ = (id) => document.getElementById(id);
 const iki = (n) => String(n).padStart(2, "0");
 const DAKIKALAR = ["00", "15", "30", "45"];
 const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
-const GUN_KISA = ["Paz","Pzt","Salı","Çar","Per","Cuma","Cmt"];
+const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos",
+               "Eylül","Ekim","Kasım","Aralık"];
 const HATIRLA = ["brans","tesis","salon","satisTuru"];
 const kacir = (s) => String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
@@ -540,7 +555,7 @@ for (const s of ["basD","bitD"])
   $(s).innerHTML = DAKIKALAR.map((d)=>`<option>${d}</option>`).join("");
 
 (function varsayilan() {
-  const d = new Date(); d.setDate(d.getDate()+3);
+  const d = new Date();   // varsayılan: bugün
   $("tarih").value = `${d.getFullYear()}-${iki(d.getMonth()+1)}-${iki(d.getDate())}`;
   const n = new Date();
   const h = (n.getHours() + (n.getMinutes()>=30 ? 1 : 0)) % 24;
@@ -553,8 +568,6 @@ HATIRLA.forEach((id) => {
   if (v !== null) $(id).value = v;
   $(id).addEventListener("change", () => localStorage.setItem("sk_"+id, $(id).value));
 });
-if (!$("brans").value) $("brans").value = "KİRALAMA (BASKETBOL - VOLEYBOL)";
-if (!$("satisTuru").value) $("satisTuru").value = "Voleybol";
 
 // -------------------------------------------------------------- açılır liste
 // Alanlara yazı yazılmıyor — yalnızca hazır seçeneklerden seçiliyor. Değer
@@ -584,8 +597,10 @@ function secici(elId, secenekler, ayar = {}) {
   function ac() {
     liste = ciz();
     pop.classList.remove("gizli");
+    // Seçili öğeyi ortala — ama YALNIZCA panelin kendi içinde kaydırarak.
+    // scrollIntoView sayfayı da kaydırıyor ve her seçimde ekran zıplıyordu.
     const s = pop.querySelector(".pop-oge.secili");
-    if (s) s.scrollIntoView({ block: "center" });
+    if (s) pop.scrollTop = Math.max(0, s.offsetTop - (pop.clientHeight - s.offsetHeight) / 2);
   }
   const kapa = () => pop.classList.add("gizli");
   function sec(v) {
@@ -618,14 +633,18 @@ function secici(elId, secenekler, ayar = {}) {
 
 const BRANS_SEC = ["KİRALAMA (BASKETBOL - VOLEYBOL)"];
 const TESIS_SEC = ["TAHA AKGÜL SPOR KOMPLEKSİ", "ÇEKMEKÖY SPOR KOMPLEKSİ",
-  "TUZLA KAFKALE SPOR KOMPLEKSİ", "BEYOĞLU SPOR TESİSİ", "ESENLER SPOR KOMPLEKSİ",
-  "HAKKI BAŞAR SPOR KOMPLEKSİ", "HAMZA YERLİKAYA SPOR KOMPLEKSİ",
-  "HİDAYET TÜRKOĞLU SPOR TESİSİ", "İBB RECEP TÜRKOĞLU SPOR KOMPLEKSİ",
-  "KARTAL HASAN DOĞAN SPOR KOMPLEKSİ", "METİN OKTAY SPOR TESİSİ",
-  "TEVFİK AYDENİZ SPOR TESİSİ"];
+  "TUZLA KAFKALE SPOR KOMPLEKSİ", "KARTAL HASAN DOĞAN SPOR KOMPLEKSİ"];
 const SALON_SEC = ["KAPALI SALON", "KAPALI SALON 1", "KAPALI SALON 2"];
 const TUR_SEC = ["Voleybol", "Basketbol"];
 const SAATLER = Array.from({length:24}, (_,h) => iki(h));
+
+// Hatırlanan (localStorage) değer listede yoksa listeler güncellenmiş demektir;
+// geçersiz bir değerle kalmak yerine listenin ilk seçeneğine dön. Böylece özet
+// şeridinde "…" yerine gerçek bir tesis adı görünüyor.
+const LISTELER = { brans:BRANS_SEC, tesis:TESIS_SEC, satisTuru:TUR_SEC };
+for (const [id, liste] of Object.entries(LISTELER))
+  if (!liste.includes($(id).value)) $(id).value = liste[0];
+if ($("salon").value && !SALON_SEC.includes($("salon").value)) $("salon").value = "";
 
 const sec = {
   brans:     secici("brans", BRANS_SEC),
@@ -647,6 +666,9 @@ function acilisHesapla() {
   const o = new Date(s); o.setHours(o.getHours()-72);
   $("acilis").value = `${o.getFullYear()}-${iki(o.getMonth()+1)}-${iki(o.getDate())}` +
     `T${iki(o.getHours())}:${iki(o.getMinutes())}:00`;
+  $("acilisGoster").textContent =
+    `${o.getDate()} ${AYLAR[o.getMonth()]}, ${GUNLER[o.getDay()]} · ` +
+    `${iki(o.getHours())}:${iki(o.getMinutes())}`;
 }
 function ozetYaz() {
   const s = seansAni(), k = $("ozet");
@@ -684,8 +706,6 @@ acilisHesapla(); ozetYaz();
 // tetikliyoruz — böylece özet, 72 saat hesabı ve doğrulama olduğu gibi çalışır.
 (function takvimKur() {
   const inp = $("tarih"), btn = $("tarihAc"), goster = $("tarihGoster"), pop = $("takvim");
-  const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos",
-                 "Eylül","Ekim","Kasım","Aralık"];
   const HAFTA = ["Pt","Sa","Ça","Pe","Cu","Ct","Pz"];   // Pazartesi başlangıçlı
   let goruntuAy;   // görüntülenen ayın 1'i
 
@@ -701,8 +721,7 @@ acilisHesapla(); ozetYaz();
   function metniYaz() {
     const d = cozVal();
     goster.textContent = d
-      ? `${iki(d.getDate())}.${iki(d.getMonth()+1)}.${String(d.getFullYear()).slice(2)} ` +
-        `${GUN_KISA[d.getDay()]}`
+      ? `${d.getDate()} ${AYLAR[d.getMonth()]}, ${GUNLER[d.getDay()]}`
       : "Tarih seçin";
   }
   function ciz() {
@@ -797,7 +816,7 @@ const KURAL = [
 ];
 // Seçici alanların değeri gizli bir <input>'ta durur; hatayı/odağı görünür
 // tetikleyici butonda göster (yoksa alanın kendisinde).
-const gorsel = (id) => $(id + "Ac") || $(id);
+const gorsel = (id) => $(id + "Ac") || $(id + "Goster") || $(id);
 function dogrula() {
   let ilk = null;
   for (const [id, k] of KURAL) {
