@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Saha Kiralama Otomasyonu | Voleybol Digital</title>
-<meta name="description" content="spor.istanbul üzerinde voleybol sahası seansı açılır açılmaz otomatik sepete ekleyen araç.">
+<meta name="description" content="spor.istanbul'da voleybol sahası seansı açılır açılmaz otomatik yakalayan Chrome eklentisi.">
 <style>
   :root {
     --bg:#f5f7fb; --card:#fff; --ink:#141c33; --muted:#6a7490; --faint:#98a1b8;
@@ -25,74 +25,72 @@
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink);
          font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  .wrap { max-width:780px; margin:0 auto; padding:44px 20px 80px; }
+  .wrap { max-width:790px; margin:0 auto; padding:44px 20px 80px; }
   a { color:var(--accent); }
 
   .home { display:inline-flex; align-items:center; gap:6px; color:var(--muted);
           text-decoration:none; font-size:13.5px; margin-bottom:26px; }
   .home:hover { color:var(--accent); }
-
   h1 { font-size:31px; line-height:1.2; margin:0 0 10px; letter-spacing:-.02em; }
-  .lede { color:var(--muted); font-size:16.5px; margin:0 0 32px; max-width:60ch; }
+  .lede { color:var(--muted); font-size:16.5px; margin:0 0 32px; max-width:62ch; }
 
   .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
           padding:24px; box-shadow:var(--shadow); margin-bottom:20px; }
 
-  /* ---- algılama kutusu ---- */
-  #detect { border-width:2px; }
-  #detect.ok    { border-color:var(--ok);   background:linear-gradient(var(--ok-soft),transparent); }
-  #detect.no    { border-color:var(--line); }
-  #detect.unsure{ border-color:var(--warn); background:linear-gradient(var(--warn-soft),transparent); }
-  .dhead { display:flex; align-items:center; gap:11px; margin-bottom:6px; }
-  .dhead h2 { font-size:19px; margin:0; }
-  .pulse { width:11px; height:11px; border-radius:50%; background:var(--faint); flex:none;
-           animation:pl 1.3s ease-in-out infinite; }
-  #detect.ok .pulse    { background:var(--ok); animation:none; }
-  #detect.no .pulse    { background:var(--faint); animation:none; }
-  #detect.unsure .pulse{ background:var(--warn); animation:none; }
-  @keyframes pl { 50% { opacity:.25; } }
-  .dbody { color:var(--muted); font-size:15px; }
+  #tespit { border-width:2px; }
+  #tespit.ok { border-color:var(--ok); background:linear-gradient(var(--ok-soft),transparent); }
+  #tespit.yok { border-color:var(--line); }
+  .basSatir { display:flex; align-items:center; gap:11px; margin-bottom:6px; }
+  .basSatir h2 { font-size:19px; margin:0; }
+  .nokta { width:11px; height:11px; border-radius:50%; background:var(--faint);
+           flex:none; animation:nb 1.3s ease-in-out infinite; }
+  #tespit.ok .nokta { background:var(--ok); animation:none; }
+  #tespit.yok .nokta { background:var(--faint); animation:none; }
+  @keyframes nb { 50% { opacity:.25; } }
+  .govde { color:var(--muted); font-size:15px; }
 
   .btn { display:inline-flex; align-items:center; gap:9px; background:var(--accent);
          color:#fff; text-decoration:none; font-weight:650; font-size:15.5px;
          padding:13px 24px; border-radius:11px; border:0; cursor:pointer;
-         margin-top:18px; transition:filter .12s; }
+         margin-top:18px; }
   .btn:hover { filter:brightness(1.09); }
   .btn.sec { background:transparent; color:var(--ink); border:1px solid var(--line);
              font-weight:500; font-size:14px; padding:10px 18px; }
-  .btn.sec:hover { background:var(--line2); filter:none; }
-  .btnrow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .btnSatir { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
 
-  /* ---- işletim sistemi sekmeleri ---- */
-  .tabs { display:flex; gap:7px; margin-bottom:20px; }
-  .tab { padding:8px 17px; border-radius:9px; border:1px solid var(--line);
-         background:transparent; color:var(--muted); font-size:14px; font-weight:600;
-         cursor:pointer; }
-  .tab.on { background:var(--accent); border-color:var(--accent); color:#fff; }
-
-  ol.steps { counter-reset:s; list-style:none; padding:0; margin:0; }
-  ol.steps li { counter-increment:s; position:relative; padding:0 0 22px 44px; }
-  ol.steps li::before { content:counter(s); position:absolute; left:0; top:-1px;
-    width:29px; height:29px; border-radius:50%; background:var(--accent-soft);
+  ol.adim { counter-reset:s; list-style:none; padding:0; margin:0; }
+  ol.adim li { counter-increment:s; position:relative; padding:0 0 24px 46px; }
+  ol.adim li::before { content:counter(s); position:absolute; left:0; top:-1px;
+    width:30px; height:30px; border-radius:50%; background:var(--accent-soft);
     color:var(--accent); font-size:14px; font-weight:700; display:grid; place-items:center; }
-  ol.steps li::after { content:""; position:absolute; left:14px; top:33px; bottom:2px;
+  ol.adim li::after { content:""; position:absolute; left:14.5px; top:34px; bottom:2px;
     width:1.5px; background:var(--line); }
-  ol.steps li:last-child { padding-bottom:0; }
-  ol.steps li:last-child::after { display:none; }
-  ol.steps b { display:block; margin-bottom:2px; }
-  ol.steps span { color:var(--muted); font-size:14.5px; }
+  ol.adim li:last-child { padding-bottom:0; }
+  ol.adim li:last-child::after { display:none; }
+  ol.adim b { display:block; margin-bottom:3px; }
+  ol.adim span { color:var(--muted); font-size:14.5px; }
 
-  h3 { font-size:16px; margin:28px 0 12px; }
+  h3 { font-size:16px; margin:26px 0 12px; }
   h3:first-child { margin-top:0; }
-  ul.plain { padding-left:20px; color:var(--muted); font-size:14.5px; margin:0; }
-  ul.plain li { margin-bottom:7px; }
+  ul.duz { padding-left:20px; color:var(--muted); font-size:14.5px; margin:0; }
+  ul.duz li { margin-bottom:7px; }
   code { font-family:ui-monospace,Consolas,monospace; font-size:13.5px;
          background:var(--line2); padding:2px 6px; border-radius:5px; }
-  .warn-note { background:var(--warn-soft); border:1px solid var(--warn);
-               border-radius:10px; padding:13px 16px; font-size:14px; margin-top:16px; }
-  .foot { color:var(--faint); font-size:13px; text-align:center; margin-top:44px;
-          padding-top:22px; border-top:1px solid var(--line); }
-  .hidden { display:none !important; }
+  .kopyala { cursor:pointer; border:0; background:var(--line2); color:var(--ink);
+             font:inherit; font-size:13.5px; font-family:ui-monospace,Consolas,monospace;
+             padding:3px 9px; border-radius:5px; }
+  .kopyala:hover { background:var(--accent-soft); color:var(--accent); }
+  .uyari { background:var(--ok-soft); border:1px solid var(--ok); border-radius:10px;
+           padding:13px 16px; font-size:14px; margin-top:18px; }
+  details { border-top:1px solid var(--line2); margin-top:18px; padding-top:6px; }
+  summary { cursor:pointer; font-size:14.5px; color:var(--muted); font-weight:600;
+            padding:9px 0; list-style:none; display:flex; align-items:center; gap:8px; }
+  summary::-webkit-details-marker { display:none; }
+  summary::before { content:"▸"; font-size:11px; transition:transform .15s; }
+  details[open] summary::before { transform:rotate(90deg); }
+  .dip { color:var(--faint); font-size:13px; text-align:center; margin-top:44px;
+         padding-top:22px; border-top:1px solid var(--line); }
+  .gizli { display:none !important; }
 </style>
 </head>
 <body>
@@ -102,244 +100,191 @@
   <h1>Saha Kiralama Otomasyonu</h1>
   <p class="lede">
     spor.istanbul'da seanslar tam 72 saat önce açılıyor ve saniyesinde kapılıyor.
-    Bu araç açılış anını sunucu saatine göre bekler, seans göründüğü an yakalayıp
-    sepete ekler.
+    Bu Chrome eklentisi açılış anını sunucu saatine göre bekler, seans göründüğü
+    an yakalar ve sepete ekler.
   </p>
 
-  <!-- ================== ALGILAMA ================== -->
-  <div class="card" id="detect">
-    <div class="dhead">
-      <span class="pulse"></span>
-      <h2 id="dtitle">Bilgisayarınız kontrol ediliyor…</h2>
+  <!-- =================== EKLENTİ TESPİTİ =================== -->
+  <div class="card" id="tespit">
+    <div class="basSatir">
+      <span class="nokta"></span>
+      <h2 id="baslik">Eklenti aranıyor…</h2>
     </div>
-    <div class="dbody" id="dbody">Otomasyonun kurulu olup olmadığına bakılıyor.</div>
-    <div id="dactions"></div>
+    <div class="govde" id="govde">Tarayıcınızda kurulu mu, bakılıyor.</div>
+    <div id="eylem"></div>
   </div>
 
-  <!-- ================== KURULUM ================== -->
-  <div class="card" id="install">
-    <div class="tabs">
-      <button class="tab" data-os="win">Windows</button>
-      <button class="tab" data-os="mac">macOS</button>
-    </div>
+  <!-- =================== KURULUM =================== -->
+  <div class="card" id="kurulum">
+    <h3>Kurulum — 2 dakika</h3>
+    <ol class="adim">
+      <li><b>Eklentiyi indirin</b>
+        <span>Tek dosya, 20 KB.</span>
+        <a class="btn" href="indir/saha-kirala-eklenti.zip" download>eklenti.zip indir</a></li>
 
-    <ol class="steps" id="stepsWin">
-      <li><b>Kurulum sihirbazını indirin</b>
-        <span>Tek dosya, 4 KB. Gerisini kendisi halleder.</span>
-        <a class="btn" href="indir/kur.bat" download>kur.bat indir</a></li>
-      <li><b>İndirilen dosyaya çift tıklayın</b>
-        <span>Windows "Bilgisayarınız korundu" uyarısı verirse
-          <b>Daha fazla bilgi &rsaquo; Yine de çalıştır</b> deyin. Bu uyarı, dosyanın
-          internetten indirilmiş olmasından kaynaklanır.</span></li>
-      <li><b>Bekleyin</b>
-        <span>Sihirbaz Python ve Chrome'u kontrol eder, eksikse kurar, uygulamayı
-          indirir ve masaüstüne kısayol koyar. İlk kurulum birkaç dakika sürer.</span></li>
+      <li><b>Zip'i açın</b>
+        <span>İndirilen dosyaya sağ tıklayıp <b>Tümünü ayıkla</b> (Windows) ya da
+          çift tıklayın (Mac). Çıkan klasörü silmeyin — eklenti oradan çalışacak.</span></li>
+
+      <li><b>Chrome'da eklenti sayfasını açın</b>
+        <span>Adres çubuğuna yazın:
+          <button class="kopyala" id="kopyaBtn">chrome://extensions</button>
+          <span id="kopyaNot" style="color:var(--ok)"></span><br>
+          Bu adres bağlantı olarak açılamıyor, Chrome güvenlik nedeniyle
+          engelliyor — elle yazmanız ya da kopyalamanız gerekiyor.</span></li>
+
+      <li><b>Geliştirici modunu açın</b>
+        <span>Sayfanın sağ üstündeki <b>Geliştirici modu</b> anahtarını açın.</span></li>
+
+      <li><b>Klasörü yükleyin</b>
+        <span>Sol üstteki <b>Paketlenmemiş öğe yükle</b> düğmesine basıp
+          2. adımda çıkardığınız klasörü seçin.</span></li>
+
       <li><b>Hazır</b>
-        <span>Kurulum bitince uygulama kendiliğinden açılır. Sonraki seferler için
-          masaüstündeki <b>Saha Kiralama</b> kısayoluna çift tıklayın.</span></li>
+        <span>Araç çubuğundaki eklenti simgesine (yapboz parçası) tıklayıp
+          <b>Saha Kiralama</b>'yı sabitleyin. Bu sayfayı yenilerseniz yukarıda
+          "kurulu" yazdığını göreceksiniz.</span></li>
     </ol>
 
-    <ol class="steps hidden" id="stepsMac">
-      <li><b>Kurulum sihirbazını indirin</b>
-        <span>Tek dosya, 4 KB. Gerisini kendisi halleder.</span>
-        <a class="btn" href="indir/kur.command" download>kur.command indir</a></li>
-      <li><b>Dosyaya sağ tıklayıp Aç deyin</b>
-        <span>Sadece çift tıklarsanız macOS "geliştirici doğrulanamadı" diyerek
-          engeller. <b>Sağ tık &rsaquo; Aç &rsaquo; Aç</b> yolunu kullanın.</span></li>
-      <li><b>Çalışmazsa izin verin</b>
-        <span>Terminal "permission denied" derse, indirdiğiniz klasörde
-          <code>chmod +x kur.command</code> komutunu çalıştırıp tekrar deneyin.</span></li>
-      <li><b>Hazır</b>
-        <span>Sihirbaz Python ve Chrome'u kontrol eder, eksikse Homebrew ile kurar.
-          Bitince masaüstünde <b>Saha Kiralama</b> kısayolu oluşur.</span></li>
-    </ol>
-
-    <div class="warn-note">
-      Bilgileriniz <b>hiçbir sunucuya gitmez.</b> Otomasyon tamamen kendi
-      bilgisayarınızda çalışır; T.C. kimlik numaranız ve şifreniz yalnızca sizin
-      makinenizde kalır. Bu sayfa sadece kurulumu kolaylaştırmak için var.
+    <div class="uyari">
+      <b>Şifreniz hiçbir yere girilmiyor.</b> Eklenti, spor.istanbul'da zaten
+      açık olan kendi oturumunuzu kullanır. T.C. kimlik numaranız ve şifreniz
+      ne eklentiye, ne bu siteye, ne de başka bir yere yazılır.
     </div>
   </div>
 
-  <!-- ================== BİLGİ ================== -->
+  <!-- =================== BİLGİ =================== -->
   <div class="card">
+    <h3>Nasıl kullanılır?</h3>
+    <ol class="adim">
+      <li><b>spor.istanbul'a giriş yapın</b>
+        <span>Normal şekilde, kendi tarayıcınızda.</span></li>
+      <li><b>Eklenti simgesine tıklayın</b>
+        <span>Tesis, salon, tarih ve saati girin. Açılış anı 72 saat öncesi
+          olarak kendiliğinden hesaplanır.</span></li>
+      <li><b>Başlat deyin</b>
+        <span>spor.istanbul sekmesi açılır ve otomasyon devralır. O sekmeyi açık
+          bırakın; eklenti penceresini kapatabilirsiniz.</span></li>
+      <li><b>SMS kodunu girin</b>
+        <span>Sepete eklendikten sonra telefonunuza kod gelir. Eklenti sizi kod
+          alanına götürür, kodu yazıp onaylarsınız.</span></li>
+    </ol>
+
     <h3>Ne yapıyor?</h3>
-    <ul class="plain">
+    <ul class="duz">
       <li>Sunucu saatiyle senkronize olur — bilgisayarınızın saati kaymışsa telafi eder.</li>
-      <li>Açılış anından önce giriş yapar, filtreleri seçer, sonuç sayfasında hazır bekler.</li>
-      <li>Seans yayınlanana kadar aramayı saniyede birkaç kez tekrarlar.</li>
-      <li>Seansı görür görmez tıklar, kiralama türünü seçer, sepete ekler.</li>
-      <li>SMS doğrulama kodunu bekler; otomatik alabiliyorsa alır, alamazsa siz yazarsınız.</li>
-      <li>Bir yerde takılırsa tarayıcıyı açık bırakır — devralıp elle bitirebilirsiniz.</li>
+      <li>Açılış anına kadar bekler, sonra aramayı saniyede birkaç kez tekrarlar.</li>
+      <li>Seansı görür görmez tıklar, satış türünü seçer, sepete ekler.</li>
+      <li>Her adımda sayfayı ilgili yere kaydırır, böylece ne yaptığını görürsünüz.</li>
+      <li>Bir yerde takılırsa durur ve sayfayı size bırakır.</li>
     </ul>
 
     <h3>Gerekenler</h3>
-    <ul class="plain">
-      <li>Windows 10/11 veya macOS</li>
-      <li>Google Chrome <span style="color:var(--faint)">— sihirbaz eksikse kurar</span></li>
-      <li>Python 3.10+ <span style="color:var(--faint)">— sihirbaz eksikse kurar</span></li>
+    <ul class="duz">
+      <li>Google Chrome (veya Edge / Brave gibi Chromium tabanlı bir tarayıcı)</li>
       <li>spor.istanbul üyeliği</li>
+      <li>Başka hiçbir şey — Python, sürücü, kurulum yok</li>
     </ul>
 
-    <h3>SMS kodunu otomatik almak</h3>
-    <ul class="plain">
-      <li><b>Android:</b> USB ile bağlayıp "USB hata ayıklama"yı açın. Telefona
-        uygulama kurmanız gerekmez.</li>
-      <li><b>macOS + iPhone:</b> Mesajlar'a SMS yönlendirmeyi açın.</li>
-      <li><b>Her telefon:</b> bir SMS yönlendirme uygulamasıyla kodu bilgisayarınıza
-        iletin.</li>
-      <li><b>Hiçbiri olmazsa:</b> kod telefonunuza gelince arayüze yazarsınız —
-        akış sizi bekler.</li>
-    </ul>
+    <details>
+      <summary>Eski sürüm (Python + Selenium)</summary>
+      <p style="color:var(--muted);font-size:14.5px">
+        Eklentiden önce aynı işi yapan, bilgisayara Python kuran bir sürüm vardı.
+        Hâlâ çalışıyor ve <code>selenium-surumu-calisir</code> dalında duruyor.
+        Eklenti her açıdan daha basit olduğu için önerilmiyor; yalnızca
+        eklentinin çalışmadığı bir durumda gerekebilir.
+      </p>
+      <div class="btnSatir">
+        <a class="btn sec" href="indir/saha-kiralama.zip" download>Python sürümü (zip)</a>
+        <a class="btn sec" href="indir/kur.bat" download>kur.bat (Windows)</a>
+        <a class="btn sec" href="indir/kur.command" download>kur.command (Mac)</a>
+      </div>
+    </details>
   </div>
 
-  <div class="foot">
-    Kişisel kullanım için yapılmıştır. Kendi hesabınızla, kendi rezervasyonunuz için
-    kullanın.
+  <div class="dip">
+    Kişisel kullanım için yapılmıştır. Kendi hesabınızla, kendi rezervasyonunuz
+    için kullanın.
   </div>
 </div>
 
 <script>
-// ---------------------------------------------------------------- işletim sistemi
-const MAC = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
-function showOS(os) {
-  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.os === os));
-  document.getElementById("stepsWin").classList.toggle("hidden", os !== "win");
-  document.getElementById("stepsMac").classList.toggle("hidden", os !== "mac");
-}
-document.querySelectorAll(".tab").forEach((t) =>
-  t.addEventListener("click", () => showOS(t.dataset.os)));
-showOS(MAC ? "mac" : "win");
-
-// ---------------------------------------------------------------- algılama
-// Bir web sayfası bilgisayarda ne kurulu olduğunu göremez -- tarayıcı buna izin
-// vermez. Yapabileceğimiz tek şey, kurulu uygulamanın kendi yerel adresine istek
-// atmak: cevap gelirse kurulu ve çalışıyor demektir.
-const PORT = 8777;
-const AGENT = `http://127.0.0.1:${PORT}`;
-
 const el = (id) => document.getElementById(id);
+const kacir = (s) => s.replace(/[&<>]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;" }[c]));
 
-function durum(sinif, baslik, govde, aksiyon = "") {
-  el("detect").className = "card " + sinif;
-  el("dtitle").textContent = baslik;
-  el("dbody").innerHTML = govde;
-  el("dactions").innerHTML = aksiyon;
+function durum(sinif, baslik, govde, eylem = "") {
+  el("tespit").className = "card " + sinif;
+  el("baslik").textContent = baslik;
+  el("govde").innerHTML = govde;
+  el("eylem").innerHTML = eylem;
 }
 
-// Port'ta bir sey dinliyor mu? `no-cors` istegi opak bir yanit dondurur ---
-// icerigini okuyamayiz ama sunucunun CEVAP VERDIGINI anlariz. Baglanti
-// kurulamazsa reddedilir. Bu sayede "uygulama kapali" ile "uygulama acik ama
-// tarayici erisimi engelliyor" durumlarini ayirt edebiliyoruz.
-async function portDinliyorMu() {
-  const iptal = new AbortController();
-  const zamanAsimi = setTimeout(() => iptal.abort(), 2500);
-  try {
-    await fetch(`${AGENT}/api/status`, {
-      signal: iptal.signal, mode: "no-cors", cache: "no-store" });
-    return true;
-  } catch { return false; }
-  finally { clearTimeout(zamanAsimi); }
+// --------------------------------------------------------------- tespit
+// Bir web sayfası tarayıcıya kurulu eklentileri soramaz. Ama eklentinin
+// content script'i bu sayfanın DOM'una yazabiliyor: <html> üzerine sürüm
+// bilgisini bırakıyor, biz de onu okuyoruz.
+function eklentiSurumu() {
+  return document.documentElement.getAttribute("data-saha-kirala-eklenti");
 }
 
-async function algila() {
-  const iptal = new AbortController();
-  const zamanAsimi = setTimeout(() => iptal.abort(), 2500);
-  try {
-    const r = await fetch(`${AGENT}/api/onkontrol`, {
-      signal: iptal.signal, mode: "cors", cache: "no-store" });
-    clearTimeout(zamanAsimi);
-    if (!r.ok) throw new Error("kötü yanıt");
-    const d = await r.json();
-
-    const eksik = d.checks.filter((c) => !c.ok && c.critical);
-    if (eksik.length) {
-      durum("unsure", "Kurulu, ama eksik var",
-        "Otomasyon çalışıyor fakat şunlar eksik: <b>" +
-        eksik.map((c) => c.name).join(", ") + "</b>",
-        `<div class="btnrow"><a class="btn" href="${AGENT}" target="_blank">Uygulamayı aç</a></div>`);
-    } else {
-      durum("ok", "Kurulu ve hazır",
-        `Otomasyon bu bilgisayarda çalışıyor <span style="color:var(--faint)">(${d.platform})</span>. Aşağıdaki düğmeyle açabilirsiniz.`,
-        `<div class="btnrow"><a class="btn" href="${AGENT}" target="_blank">Uygulamayı aç</a>` +
-        `<button class="btn sec" onclick="document.getElementById('install').scrollIntoView({behavior:'smooth'})">Yeniden kur</button></div>`);
-    }
-    el("install").classList.add("hidden");
-    return true;
-  } catch (e) {
-    clearTimeout(zamanAsimi);
-    return false;
-  }
+function kurulu(surum) {
+  durum("ok", "Eklenti kurulu",
+    `Sürüm <b>${kacir(surum)}</b>. Kullanmak için önce spor.istanbul'a giriş yapın,
+     sonra araç çubuğundaki <b>Saha Kiralama</b> simgesine tıklayın.`,
+    `<div class="btnSatir">
+       <a class="btn" href="https://online.spor.istanbul/anasayfa" target="_blank"
+          rel="noopener">spor.istanbul'u aç</a>
+     </div>`);
+  el("kurulum").classList.add("gizli");
 }
 
-const YENIDEN = `<button class="btn sec" onclick="location.reload()">Tekrar kontrol et</button>`;
-
-// Üç durumun tamamını yeniden değerlendirir. Hem ilk açılışta hem de arka
-// plandaki izleyicide bunu çağırıyoruz --- izleyici yalnızca `algila()`
-// çağırsaydı, uygulama açıkken tarayıcı engelliyorsa durumu hiç fark etmezdi.
-async function kontrolEt() {
-  if (await algila()) return true;
-
-  // Buraya düştüysek uygulamayı okuyamadık. Sebebi bilmeden "kurulu değil"
-  // demek yanlış olur: uygulama kurulu ama kapalı da olabilir, açık ama tarayıcı
-  // engelliyor da olabilir. Önce port'ta bir şey dinliyor mu, ona bakıyoruz.
-  const dinliyor = await portDinliyorMu();
-
-  if (dinliyor) {
-    // Sunucu cevap veriyor ama okuyamıyoruz -> tarayıcı izni engelliyor.
-    durum("unsure", "Uygulama çalışıyor ama tarayıcı erişimi engelliyor",
-      `Otomasyon bu bilgisayarda açık; bu sayfanın ona ulaşmasına tarayıcınız
-       izin vermiyor. Doğrudan açarak kullanabilirsiniz — hiçbir şey kaybetmezsiniz.
-       <br><br><span style="color:var(--faint)">Chrome adres çubuğunun solundaki
-       kilit simgesine tıklayıp "Yerel ağ" iznini verirseniz bu sayfa da
-       görebilir. Safari ve Firefox bu erişime hiç izin vermez.</span>`,
-      `<div class="btnrow"><a class="btn" href="${AGENT}" target="_blank">Uygulamayı aç</a>${YENIDEN}</div>`);
-    el("install").classList.add("hidden");
-    // BİLEREK false: bu durum kesinleşmiş sayılmaz. Uygulama açılırken TCP
-    // portu, sunucu istekleri karşılamaya hazır olmadan önce açılıyor; o aralığa
-    // denk gelen kontrol buraya düşer. "Kesinleşti" deyip izlemeyi durdurursak
-    // uygulama saniyeler sonra hazır olsa bile sayfa yanlış durumda kalır.
-    return false;
-  }
-
-  // Port sessiz. Kurulu olup olmadığını buradan ANLAYAMAYIZ --- kurulmamış da
-  // olabilir, kurulmuş ama başlatılmamış da. İkisini de söylüyoruz.
-  durum("no", "Uygulama çalışmıyor",
-    `<b>Daha önce kurduysanız:</b> masaüstündeki <b>Saha Kiralama</b> kısayoluna
-     çift tıklayıp başlatın. Otomasyonun çalışır durumda olması gerekiyor —
-     kurulu olması yetmez. <span style="color:var(--faint)">Bu sayfa açık kalsın,
-     başlattığınız anda kendiliğinden fark edecek.</span>
-     <br><br><b>Hiç kurmadıysanız:</b> aşağıdaki adımlarla birkaç dakikada
-     kurabilirsiniz.`,
-    `<div class="btnrow">${YENIDEN}
-     <a class="btn sec" href="${AGENT}" target="_blank">${AGENT} adresini dene</a></div>`);
-  el("install").classList.remove("hidden");
-  return false;
+function kuruluDegil() {
+  durum("yok", "Eklenti kurulu değil",
+    `Bu tarayıcıda bulunamadı. Aşağıdaki adımlarla iki dakikada kurabilirsiniz.
+     <span style="color:var(--faint)">Az önce kurduysanız bu sayfayı yenileyin.</span>`,
+    `<div class="btnSatir">
+       <button class="btn sec" onclick="location.reload()">Tekrar kontrol et</button>
+     </div>`);
+  el("kurulum").classList.remove("gizli");
 }
 
-(async () => {
-  if (await kontrolEt()) return;
+(function tespitEt() {
+  const hemen = eklentiSurumu();
+  if (hemen) return kurulu(hemen);
 
-  // Kullanıcı uygulamayı başlatınca sayfayı yenilemek zorunda kalmasın.
-  //
-  // `document.hidden` ile erken çıkmıyoruz: kullanıcı uygulamayı başlatmak için
-  // zaten bu sekmeden ayrılıyor, yani tam da beklediğimiz an sayfa "gizli"
-  // oluyor ve kontrol hiç çalışmıyordu. Arka plan zamanlayıcılarını tarayıcı
-  // kendisi kısıyor, ayrıca frenlememize gerek yok.
+  // Content script bizden sonra çalışmış olabilir; hem olayı dinliyoruz hem de
+  // kısa süre yokluyoruz.
   let bitti = false;
-  const izle = setInterval(async () => {
-    if (bitti) return;
-    if (await kontrolEt()) { bitti = true; clearInterval(izle); }
-  }, 3000);
+  const tamam = (surum) => { if (!bitti) { bitti = true; kurulu(surum); } };
 
-  // Asıl tetikleyici: kullanıcı uygulamayı başlatıp sekmeye geri döndüğü an.
-  const geriDondu = async () => {
-    if (bitti || document.hidden) return;
-    if (await kontrolEt()) { bitti = true; clearInterval(izle); }
-  };
-  document.addEventListener("visibilitychange", geriDondu);
-  window.addEventListener("focus", geriDondu);
+  window.addEventListener("saha-kirala-eklenti", (e) => tamam(e.detail.surum));
+  window.dispatchEvent(new CustomEvent("saha-kirala-sor"));
+
+  let kalan = 12;                       // ~1.8 sn
+  const zaman = setInterval(() => {
+    const s = eklentiSurumu();
+    if (s) { clearInterval(zaman); return tamam(s); }
+    if (--kalan <= 0) { clearInterval(zaman); if (!bitti) { bitti = true; kuruluDegil(); } }
+  }, 150);
+
+  // Kullanıcı sekmeye geri döndüğünde (kurulumdan sonra) yeniden bak.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden || bitti) return;
+    const s = eklentiSurumu();
+    if (s) tamam(s);
+  });
 })();
+
+// ---------------------------------------------------------- kopyala
+el("kopyaBtn").onclick = async () => {
+  try {
+    await navigator.clipboard.writeText("chrome://extensions");
+    el("kopyaNot").textContent = "kopyalandı";
+    setTimeout(() => { el("kopyaNot").textContent = ""; }, 2000);
+  } catch {
+    el("kopyaNot").textContent = "kopyalanamadı, elle yazın";
+  }
+};
 </script>
 </body>
 </html>

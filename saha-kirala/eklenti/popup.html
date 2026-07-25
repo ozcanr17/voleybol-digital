@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg:#f5f7fb; --card:#fff; --ink:#141c33; --muted:#6a7490; --faint:#98a1b8;
+    --line:#e2e7f0; --line2:#eef1f7; --accent:#2b5cf0; --accent-soft:#2b5cf014;
+    --ok:#0e8a5f; --ok-soft:#0e8a5f14; --warn:#ad5c09; --warn-soft:#ad5c0914;
+    --err:#c92a4b; --err-soft:#c92a4b14; --code:#0d1326;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0b0f1c; --card:#151b2c; --ink:#e9edf7; --muted:#98a2bd; --faint:#727d99;
+      --line:#28304a; --line2:#212940; --accent:#7ea1ff; --accent-soft:#7ea1ff1c;
+      --ok:#4ac996; --ok-soft:#4ac9961c; --warn:#e5a752; --warn-soft:#e5a75218;
+      --err:#ff7d93; --err-soft:#ff7d9320; --code:#070b16;
+    }
+  }
+  * { box-sizing:border-box; }
+  body {
+    width:392px; margin:0; padding:15px; background:var(--bg); color:var(--ink);
+    font:13.5px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  h1 { font-size:15px; margin:0 0 3px; }
+  .lede { color:var(--muted); font-size:12px; margin:0 0 13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:13px; margin-bottom:11px; }
+  label { display:block; font-size:11.5px; color:var(--muted); margin-bottom:4px; }
+  input,select { width:100%; padding:7px 9px; border:1px solid var(--line);
+                 border-radius:7px; background:var(--bg); color:var(--ink);
+                 font:inherit; font-size:12.5px; }
+  input:focus,select:focus { outline:none; border-color:var(--accent);
+                             box-shadow:0 0 0 3px var(--accent-soft); }
+  input.bad { border-color:var(--err); }
+  .field { margin-bottom:10px; }
+  .field:last-child { margin-bottom:0; }
+  .g2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .g3 { display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:7px; }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:5px; }
+  button { font:inherit; font-size:13px; font-weight:600; padding:8px 15px;
+           border-radius:7px; border:1px solid transparent; cursor:pointer;
+           background:var(--accent); color:#fff; }
+  button.ghost { background:transparent; border-color:var(--line); color:var(--ink); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  .actions { display:flex; gap:7px; }
+  .check { display:flex; align-items:center; gap:7px; margin-top:9px; }
+  .check input { width:auto; }
+  .check label { margin:0; color:var(--ink); font-size:12.5px; }
+  .rozet { display:inline-block; padding:2px 9px; border-radius:99px; font-size:11px;
+           font-weight:700; background:var(--line2); color:var(--muted); }
+  .rozet.run { background:var(--accent-soft); color:var(--accent); }
+  .rozet.ok  { background:var(--ok-soft); color:var(--ok); }
+  .rozet.err { background:var(--err-soft); color:var(--err); }
+  .rozet.warn{ background:var(--warn-soft); color:var(--warn); }
+  .satir { display:flex; align-items:center; gap:8px; margin-bottom:9px; }
+  #geri { font-size:22px; font-weight:600; font-variant-numeric:tabular-nums;
+          margin-left:auto; }
+  #kayit { background:var(--code); color:#c9d3ee; border-radius:7px; padding:9px;
+           height:132px; overflow-y:auto; font:11px/1.55 ui-monospace,Consolas,monospace;
+           white-space:pre-wrap; word-break:break-word; }
+  #kayit .t { color:#5c6785; }
+  #kayit .iyi { color:#7fe0b0; }
+  #kayit .hata { color:#ff8fa3; }
+  .not { font-size:11.5px; color:var(--muted); margin:8px 0 0; }
+  .ozet { background:var(--accent-soft); border:1px solid var(--accent);
+          border-radius:8px; padding:9px 11px; font-size:12px; margin:10px 0; }
+  .ozet.bad { background:var(--err-soft); border-color:var(--err); }
+</style>
+</head>
+<body>
+  <h1>Saha Kiralama</h1>
+  <p class="lede">spor.istanbul'daki açık oturumunuzu kullanır — şifre istemez.</p>
+
+  <div class="card">
+    <div class="satir">
+      <span id="rozet" class="rozet">boşta</span>
+      <span id="geri">--:--:--</span>
+    </div>
+    <div id="kayit"></div>
+  </div>
+
+  <div class="card" id="form">
+    <div class="field">
+      <label for="brans">Branş</label>
+      <input id="brans" list="bransList">
+      <datalist id="bransList">
+        <option value="KİRALAMA (BASKETBOL - VOLEYBOL)">
+        <option value="FUTBOL"><option value="MASA TENİSİ"><option value="PADEL">
+        <option value="PİCKLEBALL"><option value="PLAJ FUTBOLU">
+        <option value="PLAJ VOLEYBOLU"><option value="STAT KİRALAMA">
+        <option value="TENİS"><option value="TENİS ÇALIŞMA DUVARI">
+      </datalist>
+    </div>
+    <div class="g2">
+      <div class="field">
+        <label for="tesis">Tesis</label>
+        <input id="tesis" list="tesisList">
+        <datalist id="tesisList">
+          <option value="TAHA AKGÜL SPOR KOMPLEKSİ">
+          <option value="ÇEKMEKÖY SPOR KOMPLEKSİ">
+          <option value="TUZLA KAFKALE SPOR KOMPLEKSİ">
+          <option value="BEYOĞLU SPOR TESİSİ">
+          <option value="ESENLER SPOR KOMPLEKSİ">
+          <option value="HAKKI BAŞAR SPOR KOMPLEKSİ">
+          <option value="HAMZA YERLİKAYA SPOR KOMPLEKSİ">
+          <option value="HİDAYET TÜRKOĞLU SPOR TESİSİ">
+          <option value="İBB RECEP TÜRKOĞLU SPOR KOMPLEKSİ">
+          <option value="KARTAL HASAN DOĞAN SPOR KOMPLEKSİ">
+          <option value="METİN OKTAY SPOR TESİSİ">
+          <option value="TEVFİK AYDENİZ SPOR TESİSİ">
+        </datalist>
+      </div>
+      <div class="field">
+        <label for="salon">Salon <span style="opacity:.7">(boş olabilir)</span></label>
+        <input id="salon" list="salonList" placeholder="KAPALI SALON">
+        <datalist id="salonList">
+          <option value="KAPALI SALON"><option value="KAPALI SALON 1">
+          <option value="KAPALI SALON 2">
+        </datalist>
+      </div>
+    </div>
+    <div class="field">
+      <label for="satisTuru">Satış türü</label>
+      <input id="satisTuru" list="turList">
+      <datalist id="turList">
+        <option value="Voleybol"><option value="Basketbol">
+      </datalist>
+    </div>
+
+    <div class="g3" style="margin-top:11px">
+      <div class="field">
+        <label for="tarih">Tarih</label>
+        <input id="tarih" type="date">
+      </div>
+      <div class="field">
+        <label>Başlangıç</label>
+        <div class="pair"><select id="basH"></select><select id="basD"></select></div>
+      </div>
+      <div class="field">
+        <label>Bitiş</label>
+        <div class="pair"><select id="bitH"></select><select id="bitD"></select></div>
+      </div>
+    </div>
+
+    <div class="ozet" id="ozet"></div>
+
+    <div class="field">
+      <label for="acilis">Açılış anı <span style="opacity:.7">— 72 saat öncesi</span></label>
+      <input id="acilis" type="datetime-local" step="1">
+    </div>
+
+    <div class="check">
+      <input id="kuruTest" type="checkbox">
+      <label for="kuruTest">Kuru test — seansı bul, sepete ekleme</label>
+    </div>
+
+    <div class="actions" style="margin-top:12px">
+      <button id="basla">Başlat</button>
+      <button id="durdur" class="ghost" disabled>Durdur</button>
+    </div>
+    <p class="not">Başlatınca spor.istanbul sekmesi açılır. O sekmeyi açık
+       bırakın; bu pencereyi kapatabilirsiniz.</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
