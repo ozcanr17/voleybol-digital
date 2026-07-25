@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saha Kiralama Otomasyonu | Voleybol Digital</title>
+<meta name="description" content="spor.istanbul üzerinde voleybol sahası seansı açılır açılmaz otomatik sepete ekleyen araç.">
+<style>
+  :root {
+    --bg:#f5f7fb; --card:#fff; --ink:#141c33; --muted:#6a7490; --faint:#98a1b8;
+    --line:#e2e7f0; --line2:#eef1f7; --accent:#2b5cf0; --accent-soft:#2b5cf014;
+    --ok:#0e8a5f; --ok-soft:#0e8a5f14; --warn:#ad5c09; --warn-soft:#ad5c0914;
+    --err:#c92a4b; --code:#0d1326;
+    --shadow:0 1px 2px #0d132608, 0 8px 26px #0d132612;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0b0f1c; --card:#151b2c; --ink:#e9edf7; --muted:#98a2bd; --faint:#727d99;
+      --line:#28304a; --line2:#212940; --accent:#7ea1ff; --accent-soft:#7ea1ff1c;
+      --ok:#4ac996; --ok-soft:#4ac9961c; --warn:#e5a752; --warn-soft:#e5a75218;
+      --err:#ff7d93; --code:#070b16;
+      --shadow:0 1px 2px #0006, 0 10px 30px #0007;
+    }
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  .wrap { max-width:780px; margin:0 auto; padding:44px 20px 80px; }
+  a { color:var(--accent); }
+
+  .home { display:inline-flex; align-items:center; gap:6px; color:var(--muted);
+          text-decoration:none; font-size:13.5px; margin-bottom:26px; }
+  .home:hover { color:var(--accent); }
+
+  h1 { font-size:31px; line-height:1.2; margin:0 0 10px; letter-spacing:-.02em; }
+  .lede { color:var(--muted); font-size:16.5px; margin:0 0 32px; max-width:60ch; }
+
+  .card { background:var(--card); border:1px solid var(--line); border-radius:16px;
+          padding:24px; box-shadow:var(--shadow); margin-bottom:20px; }
+
+  /* ---- algılama kutusu ---- */
+  #detect { border-width:2px; }
+  #detect.ok    { border-color:var(--ok);   background:linear-gradient(var(--ok-soft),transparent); }
+  #detect.no    { border-color:var(--line); }
+  #detect.unsure{ border-color:var(--warn); background:linear-gradient(var(--warn-soft),transparent); }
+  .dhead { display:flex; align-items:center; gap:11px; margin-bottom:6px; }
+  .dhead h2 { font-size:19px; margin:0; }
+  .pulse { width:11px; height:11px; border-radius:50%; background:var(--faint); flex:none;
+           animation:pl 1.3s ease-in-out infinite; }
+  #detect.ok .pulse    { background:var(--ok); animation:none; }
+  #detect.no .pulse    { background:var(--faint); animation:none; }
+  #detect.unsure .pulse{ background:var(--warn); animation:none; }
+  @keyframes pl { 50% { opacity:.25; } }
+  .dbody { color:var(--muted); font-size:15px; }
+
+  .btn { display:inline-flex; align-items:center; gap:9px; background:var(--accent);
+         color:#fff; text-decoration:none; font-weight:650; font-size:15.5px;
+         padding:13px 24px; border-radius:11px; border:0; cursor:pointer;
+         margin-top:18px; transition:filter .12s; }
+  .btn:hover { filter:brightness(1.09); }
+  .btn.sec { background:transparent; color:var(--ink); border:1px solid var(--line);
+             font-weight:500; font-size:14px; padding:10px 18px; }
+  .btn.sec:hover { background:var(--line2); filter:none; }
+  .btnrow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+  /* ---- işletim sistemi sekmeleri ---- */
+  .tabs { display:flex; gap:7px; margin-bottom:20px; }
+  .tab { padding:8px 17px; border-radius:9px; border:1px solid var(--line);
+         background:transparent; color:var(--muted); font-size:14px; font-weight:600;
+         cursor:pointer; }
+  .tab.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+
+  ol.steps { counter-reset:s; list-style:none; padding:0; margin:0; }
+  ol.steps li { counter-increment:s; position:relative; padding:0 0 22px 44px; }
+  ol.steps li::before { content:counter(s); position:absolute; left:0; top:-1px;
+    width:29px; height:29px; border-radius:50%; background:var(--accent-soft);
+    color:var(--accent); font-size:14px; font-weight:700; display:grid; place-items:center; }
+  ol.steps li::after { content:""; position:absolute; left:14px; top:33px; bottom:2px;
+    width:1.5px; background:var(--line); }
+  ol.steps li:last-child { padding-bottom:0; }
+  ol.steps li:last-child::after { display:none; }
+  ol.steps b { display:block; margin-bottom:2px; }
+  ol.steps span { color:var(--muted); font-size:14.5px; }
+
+  h3 { font-size:16px; margin:28px 0 12px; }
+  h3:first-child { margin-top:0; }
+  ul.plain { padding-left:20px; color:var(--muted); font-size:14.5px; margin:0; }
+  ul.plain li { margin-bottom:7px; }
+  code { font-family:ui-monospace,Consolas,monospace; font-size:13.5px;
+         background:var(--line2); padding:2px 6px; border-radius:5px; }
+  .warn-note { background:var(--warn-soft); border:1px solid var(--warn);
+               border-radius:10px; padding:13px 16px; font-size:14px; margin-top:16px; }
+  .foot { color:var(--faint); font-size:13px; text-align:center; margin-top:44px;
+          padding-top:22px; border-top:1px solid var(--line); }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="home" href="/">&larr; Voleybol Digital</a>
+
+  <h1>Saha Kiralama Otomasyonu</h1>
+  <p class="lede">
+    spor.istanbul'da seanslar tam 72 saat önce açılıyor ve saniyesinde kapılıyor.
+    Bu araç açılış anını sunucu saatine göre bekler, seans göründüğü an yakalayıp
+    sepete ekler.
+  </p>
+
+  <!-- ================== ALGILAMA ================== -->
+  <div class="card" id="detect">
+    <div class="dhead">
+      <span class="pulse"></span>
+      <h2 id="dtitle">Bilgisayarınız kontrol ediliyor…</h2>
+    </div>
+    <div class="dbody" id="dbody">Otomasyonun kurulu olup olmadığına bakılıyor.</div>
+    <div id="dactions"></div>
+  </div>
+
+  <!-- ================== KURULUM ================== -->
+  <div class="card" id="install">
+    <div class="tabs">
+      <button class="tab" data-os="win">Windows</button>
+      <button class="tab" data-os="mac">macOS</button>
+    </div>
+
+    <ol class="steps" id="stepsWin">
+      <li><b>Kurulum sihirbazını indirin</b>
+        <span>Tek dosya, 4 KB. Gerisini kendisi halleder.</span>
+        <a class="btn" href="indir/kur.bat" download>kur.bat indir</a></li>
+      <li><b>İndirilen dosyaya çift tıklayın</b>
+        <span>Windows "Bilgisayarınız korundu" uyarısı verirse
+          <b>Daha fazla bilgi &rsaquo; Yine de çalıştır</b> deyin. Bu uyarı, dosyanın
+          internetten indirilmiş olmasından kaynaklanır.</span></li>
+      <li><b>Bekleyin</b>
+        <span>Sihirbaz Python ve Chrome'u kontrol eder, eksikse kurar, uygulamayı
+          indirir ve masaüstüne kısayol koyar. İlk kurulum birkaç dakika sürer.</span></li>
+      <li><b>Hazır</b>
+        <span>Kurulum bitince uygulama kendiliğinden açılır. Sonraki seferler için
+          masaüstündeki <b>Saha Kiralama</b> kısayoluna çift tıklayın.</span></li>
+    </ol>
+
+    <ol class="steps hidden" id="stepsMac">
+      <li><b>Kurulum sihirbazını indirin</b>
+        <span>Tek dosya, 4 KB. Gerisini kendisi halleder.</span>
+        <a class="btn" href="indir/kur.command" download>kur.command indir</a></li>
+      <li><b>Dosyaya sağ tıklayıp Aç deyin</b>
+        <span>Sadece çift tıklarsanız macOS "geliştirici doğrulanamadı" diyerek
+          engeller. <b>Sağ tık &rsaquo; Aç &rsaquo; Aç</b> yolunu kullanın.</span></li>
+      <li><b>Çalışmazsa izin verin</b>
+        <span>Terminal "permission denied" derse, indirdiğiniz klasörde
+          <code>chmod +x kur.command</code> komutunu çalıştırıp tekrar deneyin.</span></li>
+      <li><b>Hazır</b>
+        <span>Sihirbaz Python ve Chrome'u kontrol eder, eksikse Homebrew ile kurar.
+          Bitince masaüstünde <b>Saha Kiralama</b> kısayolu oluşur.</span></li>
+    </ol>
+
+    <div class="warn-note">
+      Bilgileriniz <b>hiçbir sunucuya gitmez.</b> Otomasyon tamamen kendi
+      bilgisayarınızda çalışır; T.C. kimlik numaranız ve şifreniz yalnızca sizin
+      makinenizde kalır. Bu sayfa sadece kurulumu kolaylaştırmak için var.
+    </div>
+  </div>
+
+  <!-- ================== BİLGİ ================== -->
+  <div class="card">
+    <h3>Ne yapıyor?</h3>
+    <ul class="plain">
+      <li>Sunucu saatiyle senkronize olur — bilgisayarınızın saati kaymışsa telafi eder.</li>
+      <li>Açılış anından önce giriş yapar, filtreleri seçer, sonuç sayfasında hazır bekler.</li>
+      <li>Seans yayınlanana kadar aramayı saniyede birkaç kez tekrarlar.</li>
+      <li>Seansı görür görmez tıklar, kiralama türünü seçer, sepete ekler.</li>
+      <li>SMS doğrulama kodunu bekler; otomatik alabiliyorsa alır, alamazsa siz yazarsınız.</li>
+      <li>Bir yerde takılırsa tarayıcıyı açık bırakır — devralıp elle bitirebilirsiniz.</li>
+    </ul>
+
+    <h3>Gerekenler</h3>
+    <ul class="plain">
+      <li>Windows 10/11 veya macOS</li>
+      <li>Google Chrome <span style="color:var(--faint)">— sihirbaz eksikse kurar</span></li>
+      <li>Python 3.10+ <span style="color:var(--faint)">— sihirbaz eksikse kurar</span></li>
+      <li>spor.istanbul üyeliği</li>
+    </ul>
+
+    <h3>SMS kodunu otomatik almak</h3>
+    <ul class="plain">
+      <li><b>Android:</b> USB ile bağlayıp "USB hata ayıklama"yı açın. Telefona
+        uygulama kurmanız gerekmez.</li>
+      <li><b>macOS + iPhone:</b> Mesajlar'a SMS yönlendirmeyi açın.</li>
+      <li><b>Her telefon:</b> bir SMS yönlendirme uygulamasıyla kodu bilgisayarınıza
+        iletin.</li>
+      <li><b>Hiçbiri olmazsa:</b> kod telefonunuza gelince arayüze yazarsınız —
+        akış sizi bekler.</li>
+    </ul>
+  </div>
+
+  <div class="foot">
+    Kişisel kullanım için yapılmıştır. Kendi hesabınızla, kendi rezervasyonunuz için
+    kullanın.
+  </div>
+</div>
+
+<script>
+// ---------------------------------------------------------------- işletim sistemi
+const MAC = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
+function showOS(os) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("on", t.dataset.os === os));
+  document.getElementById("stepsWin").classList.toggle("hidden", os !== "win");
+  document.getElementById("stepsMac").classList.toggle("hidden", os !== "mac");
+}
+document.querySelectorAll(".tab").forEach((t) =>
+  t.addEventListener("click", () => showOS(t.dataset.os)));
+showOS(MAC ? "mac" : "win");
+
+// ---------------------------------------------------------------- algılama
+// Bir web sayfası bilgisayarda ne kurulu olduğunu göremez -- tarayıcı buna izin
+// vermez. Yapabileceğimiz tek şey, kurulu uygulamanın kendi yerel adresine istek
+// atmak: cevap gelirse kurulu ve çalışıyor demektir.
+const PORT = 8777;
+const AGENT = `http://127.0.0.1:${PORT}`;
+
+const el = (id) => document.getElementById(id);
+
+function durum(sinif, baslik, govde, aksiyon = "") {
+  el("detect").className = "card " + sinif;
+  el("dtitle").textContent = baslik;
+  el("dbody").innerHTML = govde;
+  el("dactions").innerHTML = aksiyon;
+}
+
+async function algila() {
+  const iptal = new AbortController();
+  const zamanAsimi = setTimeout(() => iptal.abort(), 2500);
+  try {
+    const r = await fetch(`${AGENT}/api/onkontrol`, {
+      signal: iptal.signal, mode: "cors", cache: "no-store" });
+    clearTimeout(zamanAsimi);
+    if (!r.ok) throw new Error("kötü yanıt");
+    const d = await r.json();
+
+    const eksik = d.checks.filter((c) => !c.ok && c.critical);
+    if (eksik.length) {
+      durum("unsure", "Kurulu, ama eksik var",
+        "Otomasyon çalışıyor fakat şunlar eksik: <b>" +
+        eksik.map((c) => c.name).join(", ") + "</b>",
+        `<div class="btnrow"><a class="btn" href="${AGENT}" target="_blank">Uygulamayı aç</a></div>`);
+    } else {
+      durum("ok", "Kurulu ve hazır",
+        `Otomasyon bu bilgisayarda çalışıyor <span style="color:var(--faint)">(${d.platform})</span>. Aşağıdaki düğmeyle açabilirsiniz.`,
+        `<div class="btnrow"><a class="btn" href="${AGENT}" target="_blank">Uygulamayı aç</a>` +
+        `<button class="btn sec" onclick="document.getElementById('install').scrollIntoView({behavior:'smooth'})">Yeniden kur</button></div>`);
+    }
+    el("install").classList.add("hidden");
+    return true;
+  } catch (e) {
+    clearTimeout(zamanAsimi);
+    return false;
+  }
+}
+
+(async () => {
+  const bulundu = await algila();
+  if (bulundu) return;
+
+  // Safari ve Firefox, HTTPS sayfadan yerel adrese isteği güvenlik gereği
+  // engelleyebiliyor. Bu durumda "kurulu değil" demek yanlış olur --- kurulu
+  // ama görülemiyor olabilir. Dürüst davranıp iki ihtimali de söylüyoruz.
+  const kisitli = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
+                  /firefox/i.test(navigator.userAgent);
+
+  if (kisitli) {
+    durum("unsure", "Kurulu olup olmadığı anlaşılamadı",
+      `Bu tarayıcı güvenlik nedeniyle yerel uygulamalara erişimi engelliyor, bu yüzden
+       kontrol edemedik. Otomasyonu daha önce kurduysanız
+       <a href="${AGENT}" target="_blank">${AGENT}</a> adresini deneyin.
+       Kurmadıysanız aşağıdan devam edin.`,
+      `<div class="btnrow"><a class="btn sec" href="${AGENT}" target="_blank">Yine de açmayı dene</a></div>`);
+  } else {
+    durum("no", "Henüz kurulu değil",
+      `Bu bilgisayarda otomasyon bulunamadı. Aşağıdaki adımlarla birkaç dakikada
+       kurabilirsiniz. <span style="color:var(--faint)">Kurduysanız ve
+       çalışmıyorsa, önce uygulamayı başlatıp bu sayfayı yenileyin.</span>`,
+      `<div class="btnrow"><button class="btn sec" onclick="location.reload()">Tekrar kontrol et</button></div>`);
+  }
+  el("install").classList.remove("hidden");
+})();
+</script>
+</body>
+</html>
