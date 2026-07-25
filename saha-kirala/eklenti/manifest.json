@@ -13,9 +13,21 @@
   "background": {
     "service_worker": "arka.js"
   },
+  "icons": {
+    "16": "ikon16.png",
+    "32": "ikon32.png",
+    "48": "ikon48.png",
+    "128": "ikon128.png"
+  },
   "action": {
     "default_title": "Saha Kiralama",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "ikon16.png",
+      "32": "ikon32.png",
+      "48": "ikon48.png",
+      "128": "ikon128.png"
+    }
   },
   "content_scripts": [
     {

@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img"
      aria-label="Spor İstanbul">
   <rect width="256" height="256" fill="#2b2560"/>
-  <path d="M224 56 H96 C44 56 44 128 96 128 H160 C212 128 212 200 160 200 H32"
+  <!-- Üç yatay çubuk + iki yarım halka (üst-sol, alt-sağ). Ölçüler
+       eklentinin PNG ikonlarıyla birebir aynı. -->
+  <path d="M224 56 H94 A36 36 0 0 0 94 128 H162 A36 36 0 0 1 162 200 H32"
         fill="none" stroke="#ffffff" stroke-width="52"/>
 </svg>
