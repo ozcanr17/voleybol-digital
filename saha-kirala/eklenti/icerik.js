@@ -199,19 +199,63 @@
       }
     }
 
-    const ara = document.getElementById(ARAMA_BTN);
-    if (!ara) {
+    if (!document.getElementById(ARAMA_BTN)) {
       return bitir("hata", "Arama butonu bulunamadı.", "hata");
     }
-    await kaydet("Filtreler hazır, aranıyor...");
+
+    // Açılış anını BURADA, filtreler seçili hâlde bekliyoruz.
+    //
+    // Sonuç sayfası dinamik değil --- bir anlık görüntü. Oraya erkenden geçip
+    // beklemenin faydası yok; üstelik saatlerce beklenirse ASP.NET oturumu ve
+    // viewstate bayatlayabilir. Doğru sıra: filtreleri seç, zamanı bekle, tam
+    // vaktinde ara. Böylece ilk arama sonucunda seans zaten çıkmış oluyor.
+    if (!(await acilisiBekle(is))) return;     // durduruldu
+
+    await kaydet("Açılış anı geldi, aranıyor...");
+    const ara = document.getElementById(ARAMA_BTN);
+    if (!ara) return bitir("hata", "Arama butonu kayboldu.", "hata");
     tiklaVeyaPostback(ara);
+  }
+
+  // Sunucu saatine göre açılış anını bekler. Kullanıcı durdurursa false döner.
+  async function acilisiBekle(is) {
+    const fark = is.saatFarki || 0;
+    const kalan0 = is.acilis - simdi(fark);
+
+    if (kalan0 <= 0) {
+      await kaydet("Seans zaten açılmış, doğrudan aranıyor.");
+      return true;
+    }
+
+    await guncelle({ durum: "bekleme" });
+    await kaydet(`Filtreler hazır. Açılışa ${Math.round(kalan0 / 1000)} sn var, ` +
+                 `filtreler seçili hâlde bekleniyor.`);
+
+    let sonBildirim = 0;
+    while (true) {
+      const guncel = await oku();
+      if (!guncel || !guncel.aktif) return false;
+
+      const kalan = guncel.acilis - simdi(fark);
+      if (kalan <= 0) return true;
+
+      // Uzun beklemelerde arada haber ver; sessiz kalıp donmuş gibi görünmesin.
+      const dk = Math.floor(kalan / 60000);
+      if (kalan > 60000 && dk !== sonBildirim && dk % 5 === 0) {
+        sonBildirim = dk;
+        await kaydet(`Açılışa ${dk} dakika var...`);
+      }
+      await bekle(Math.min(kalan, 1000));
+    }
   }
 
   async function yoklamaAdimi(is) {
     const fark = is.saatFarki || 0;
     const kalan = is.acilis - simdi(fark);
 
-    // Açılıştan önceysek bekle. Sayfa açık duruyor, yenilemeye gerek yok.
+    // Normalde buraya açılış anı gelmişken varılır --- beklemeyi anasayfada,
+    // filtreler seçili hâlde yapıyoruz. Bu dal yalnızca güvenlik ağı: sonuç
+    // sayfasına bir şekilde erken düşülürse burada da bekleriz.
     if (kalan > 1500) {
       if (!is.beklemeBildirildi) {
         // NOT: `guncelle` depoyu günceller ama elimizdeki nesneyi değiştirmez;
