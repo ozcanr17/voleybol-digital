@@ -1,0 +1,14 @@
+# Satır sonları platforma göre sabitlenir. Kurulum betikleri buna duyarlı:
+# CMD.EXE, goto ve parantezli bloklar içeren LF satır sonlu .bat dosyalarında
+# hatalı davranabiliyor; bash ise CRLF gördüğünde "bad interpreter: /bin/bash^M"
+# hatası veriyor. Kim klonlarsa klonlasın doğru olsun diye burada zorluyoruz.
+* text=auto eol=lf
+
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.command text eol=lf
+*.sh      text eol=lf
+
+*.zip binary
+*.png binary
