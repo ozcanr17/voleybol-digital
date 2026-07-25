@@ -64,25 +64,29 @@
   .g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:13px; }
   @media (max-width:460px) { .g2,.g3 { grid-template-columns:1fr; } }
 
-  /* Aranabilir açılır kutu (native datalist yerine — seçimden sonra da tam
-     listeyi her tıklamada açar). */
-  .combo { position:relative; }
-  .combo input { padding-right:34px; }
-  .combo-sil { position:absolute; top:50%; transform:translateY(-50%); right:7px;
-               width:23px; height:23px; padding:0; border:0; border-radius:6px;
-               background:transparent; color:var(--faint); font-size:17px; line-height:1;
-               cursor:pointer; display:none; place-items:center; }
-  .combo.dolu .combo-sil { display:grid; }
-  .combo-sil:hover:not(:disabled) { background:var(--line2); color:var(--ink); filter:none; }
-  .combo-panel { position:absolute; z-index:30; left:0; right:0; top:calc(100% + 4px);
-                 max-height:244px; overflow-y:auto; background:var(--card);
-                 border:1px solid var(--line); border-radius:10px;
-                 box-shadow:var(--shadow); padding:4px; display:none; }
-  .combo-panel.acik { display:block; }
-  .combo-oge { padding:8px 10px; border-radius:7px; font-size:14px; cursor:pointer;
-               white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .combo-oge:hover, .combo-oge.etkin { background:var(--accent-soft); color:var(--accent); }
-  .combo-bos { padding:8px 10px; font-size:13px; color:var(--muted); }
+  /* Açılır liste (yazma yok — yalnızca seçenek listesi). Tarih/saat
+     seçicileriyle aynı buton + popup dilini kullanır. */
+  .liste-pop { position:absolute; z-index:35; left:0; min-width:100%; top:calc(100% + 5px);
+               max-height:250px; overflow-y:auto; overscroll-behavior:contain;
+               background:var(--card); border:1px solid var(--line); border-radius:11px;
+               box-shadow:var(--shadow); padding:5px; display:flex; flex-direction:column; gap:2px; }
+  .liste-pop.gizli { display:none; }
+  .pop-oge { flex:none; padding:8px 10px; border:0; border-radius:8px; background:transparent;
+             color:var(--ink); font:inherit; font-size:13.5px; font-weight:500; text-align:left;
+             cursor:pointer; white-space:nowrap; }
+  .pop-oge:hover:not(:disabled) { background:var(--accent-soft); color:var(--accent); filter:none; }
+  .pop-oge.secili, .pop-oge.secili:hover { background:var(--accent); color:#fff; }
+  .pop-oge.bosluk { color:var(--muted); font-style:italic; }
+
+  /* Kaydırma çubuğu: tarayıcı varsayılanı beyaz ve köşeliydi; temaya uygun,
+     yuvarlatılmış ve ince bir çubuk. */
+  .liste-pop { scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
+  .liste-pop::-webkit-scrollbar { width:10px; }
+  .liste-pop::-webkit-scrollbar-track { background:transparent; }
+  .liste-pop::-webkit-scrollbar-thumb { background:var(--line); border-radius:99px;
+                                        border:3px solid transparent; background-clip:content-box; }
+  .liste-pop::-webkit-scrollbar-thumb:hover { background:var(--faint); border:3px solid transparent;
+                                              background-clip:content-box; }
 
   /* Özel tarih/saat seçiciler (takvim ve saat popup'ları) */
   .secici-alan { position:relative; }
@@ -113,17 +117,28 @@
   .tk-gun.secili, .tk-gun.secili:hover { background:var(--accent); color:#fff; }
   .tk-gun:disabled { color:var(--faint); opacity:.38; cursor:not-allowed; }
 
-  /* Özel saat/dakika seçici (aynı popup stili, iki kaydırılabilir sütun) */
-  .zaman-pop { position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:148px;
-               background:var(--card); border:1px solid var(--line); border-radius:12px;
-               box-shadow:var(--shadow); padding:8px; display:flex; gap:6px; }
-  .zaman-pop.gizli { display:none; }
-  .zaman-kol { flex:1; max-height:206px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
-  .zaman-oge { flex:none; padding:7px 0; border:0; border-radius:8px; background:transparent;
-               color:var(--ink); font:inherit; font-size:13px; font-weight:600; text-align:center;
-               cursor:pointer; font-variant-numeric:tabular-nums; }
-  .zaman-oge:hover { background:var(--accent-soft); color:var(--accent); filter:none; }
-  .zaman-oge.secili, .zaman-oge.secili:hover { background:var(--accent); color:#fff; }
+  /* Saat ve dakika ayrı ayrı seçiliyor: [19] : [30] */
+  .seans-satir { grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1fr); }
+  @media (max-width:460px) { .seans-satir { grid-template-columns:1fr; } }
+  .zaman-ikili { display:flex; align-items:center; gap:5px; }
+  .zaman-ikili .secici-alan { flex:1; min-width:0; }
+  .zaman-ikili .iki-nokta { color:var(--faint); font-weight:700; flex:none; }
+  .secici-btn.dar { padding:10px 7px 10px 10px; gap:3px; font-variant-numeric:tabular-nums;
+                    font-weight:600; }
+  .secici-btn.dar .secici-ok { font-size:10px; }
+  .liste-pop.dar { min-width:0; width:100%; }
+  .liste-pop.dar .pop-oge { text-align:center; padding:8px 4px; font-weight:600;
+                            font-variant-numeric:tabular-nums; }
+
+  /* Hızlı seçim çipleri (Bugün / Yarın / +3 gün, 19:00 / 20:00 / 21:00) */
+  .cip-satir { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; }
+  .cip { padding:5px 12px; border-radius:999px; border:1px solid var(--line);
+         background:var(--raise); color:var(--muted); font-size:12px; font-weight:500;
+         cursor:pointer; transition:border-color .12s, color .12s, background .12s; }
+  .cip:hover:not(:disabled) { border-color:var(--accent); color:var(--accent);
+                              background:var(--raise); filter:none; }
+  .cip.etkin { background:var(--accent-soft); border-color:var(--accent);
+               color:var(--accent); font-weight:700; }
 
   .kutu { display:flex; align-items:flex-start; gap:9px; padding:7px 0; }
   .kutu input { width:17px; height:17px; flex:none; margin-top:1px; accent-color:var(--accent); }
@@ -271,31 +286,59 @@
         <div class="card">
           <h2><span class="num">1</span> Saha</h2>
           <div class="alan">
-            <label for="brans">Branş</label>
-            <input id="brans" autocomplete="off" placeholder="Branş seçin">
+            <label for="bransAc">Branş</label>
+            <div class="secici-alan">
+              <input id="brans" hidden>
+              <button type="button" id="bransAc" class="secici-btn" aria-haspopup="listbox">
+                <span id="bransGoster">Seçin</span>
+                <span class="secici-ok" aria-hidden="true">▾</span>
+              </button>
+              <div id="bransPop" class="liste-pop gizli" role="listbox"></div>
+            </div>
             <div class="hata-msg" id="e-brans"></div>
           </div>
           <div class="g2">
             <div class="alan">
-              <label for="tesis">Tesis</label>
-              <input id="tesis" autocomplete="off" placeholder="Önce branş seçin">
+              <label for="tesisAc">Tesis</label>
+              <div class="secici-alan">
+                <input id="tesis" hidden>
+                <button type="button" id="tesisAc" class="secici-btn" aria-haspopup="listbox">
+                  <span id="tesisGoster">Seçin</span>
+                  <span class="secici-ok" aria-hidden="true">▾</span>
+                </button>
+                <div id="tesisPop" class="liste-pop gizli" role="listbox"></div>
+              </div>
               <div class="hata-msg" id="e-tesis"></div>
             </div>
             <div class="alan">
-              <label for="salon">Salon <span class="opt">— boş bırakılabilir</span></label>
-              <input id="salon" autocomplete="off" placeholder="KAPALI SALON">
+              <label for="salonAc">Salon <span class="opt">— boş bırakılabilir</span></label>
+              <div class="secici-alan">
+                <input id="salon" hidden>
+                <button type="button" id="salonAc" class="secici-btn" aria-haspopup="listbox">
+                  <span id="salonGoster">Boş</span>
+                  <span class="secici-ok" aria-hidden="true">▾</span>
+                </button>
+                <div id="salonPop" class="liste-pop gizli" role="listbox"></div>
+              </div>
             </div>
           </div>
           <div class="alan">
-            <label for="satisTuru">Satış türü <span class="opt">— rezervasyon formunda seçilecek</span></label>
-            <input id="satisTuru" autocomplete="off" placeholder="Voleybol">
+            <label for="satisTuruAc">Satış türü <span class="opt">— rezervasyon formunda seçilecek</span></label>
+            <div class="secici-alan">
+              <input id="satisTuru" hidden>
+              <button type="button" id="satisTuruAc" class="secici-btn" aria-haspopup="listbox">
+                <span id="satisTuruGoster">Seçin</span>
+                <span class="secici-ok" aria-hidden="true">▾</span>
+              </button>
+              <div id="satisTuruPop" class="liste-pop gizli" role="listbox"></div>
+            </div>
             <div class="hata-msg" id="e-satisTuru"></div>
           </div>
         </div>
 
         <div class="card">
           <h2><span class="num">2</span> Seans</h2>
-          <div class="g3">
+          <div class="g3 seans-satir">
             <div class="alan">
               <label for="tarihAc">Tarih</label>
               <div class="secici-alan">
@@ -309,28 +352,53 @@
               <div class="hata-msg" id="e-tarih"></div>
             </div>
             <div class="alan">
-              <label for="basAc">Başlangıç</label>
-              <div class="secici-alan">
-                <select id="basH" hidden></select><select id="basD" hidden></select>
-                <button type="button" id="basAc" class="secici-btn" aria-haspopup="dialog">
-                  <span id="basGoster">--:--</span>
-                  <span class="secici-ok" aria-hidden="true">▾</span>
-                </button>
-                <div id="basPop" class="zaman-pop gizli" role="dialog" aria-label="Başlangıç saati"></div>
+              <label for="basHAc">Başlangıç</label>
+              <div class="zaman-ikili">
+                <div class="secici-alan">
+                  <select id="basH" hidden></select>
+                  <button type="button" id="basHAc" class="secici-btn dar" aria-haspopup="listbox"
+                          aria-label="Başlangıç saati">
+                    <span id="basHGoster">--</span><span class="secici-ok" aria-hidden="true">▾</span>
+                  </button>
+                  <div id="basHPop" class="liste-pop dar gizli" role="listbox"></div>
+                </div>
+                <span class="iki-nokta">:</span>
+                <div class="secici-alan">
+                  <select id="basD" hidden></select>
+                  <button type="button" id="basDAc" class="secici-btn dar" aria-haspopup="listbox"
+                          aria-label="Başlangıç dakikası">
+                    <span id="basDGoster">--</span><span class="secici-ok" aria-hidden="true">▾</span>
+                  </button>
+                  <div id="basDPop" class="liste-pop dar gizli" role="listbox"></div>
+                </div>
               </div>
             </div>
             <div class="alan">
-              <label for="bitAc">Bitiş</label>
-              <div class="secici-alan">
-                <select id="bitH" hidden></select><select id="bitD" hidden></select>
-                <button type="button" id="bitAc" class="secici-btn" aria-haspopup="dialog">
-                  <span id="bitGoster">--:--</span>
-                  <span class="secici-ok" aria-hidden="true">▾</span>
-                </button>
-                <div id="bitPop" class="zaman-pop gizli" role="dialog" aria-label="Bitiş saati"></div>
+              <label for="bitHAc">Bitiş</label>
+              <div class="zaman-ikili">
+                <div class="secici-alan">
+                  <select id="bitH" hidden></select>
+                  <button type="button" id="bitHAc" class="secici-btn dar" aria-haspopup="listbox"
+                          aria-label="Bitiş saati">
+                    <span id="bitHGoster">--</span><span class="secici-ok" aria-hidden="true">▾</span>
+                  </button>
+                  <div id="bitHPop" class="liste-pop dar gizli" role="listbox"></div>
+                </div>
+                <span class="iki-nokta">:</span>
+                <div class="secici-alan">
+                  <select id="bitD" hidden></select>
+                  <button type="button" id="bitDAc" class="secici-btn dar" aria-haspopup="listbox"
+                          aria-label="Bitiş dakikası">
+                    <span id="bitDGoster">--</span><span class="secici-ok" aria-hidden="true">▾</span>
+                  </button>
+                  <div id="bitDPop" class="liste-pop dar gizli" role="listbox"></div>
+                </div>
               </div>
             </div>
           </div>
+
+          <div class="cip-satir" id="hizliTarih"></div>
+          <div class="cip-satir" id="hizliSaat"></div>
 
           <div class="ozet" id="ozet"></div>
 
@@ -409,6 +477,7 @@ const $ = (id) => document.getElementById(id);
 const iki = (n) => String(n).padStart(2, "0");
 const DAKIKALAR = ["00", "15", "30", "45"];
 const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
+const GUN_KISA = ["Paz","Pzt","Salı","Çar","Per","Cuma","Cmt"];
 const HATIRLA = ["brans","tesis","salon","satisTuru"];
 const kacir = (s) => String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
@@ -487,84 +556,63 @@ HATIRLA.forEach((id) => {
 if (!$("brans").value) $("brans").value = "KİRALAMA (BASKETBOL - VOLEYBOL)";
 if (!$("satisTuru").value) $("satisTuru").value = "Voleybol";
 
-// ---------------------------------------------------- aranabilir açılır kutu
-// Native <input list="datalist"> bir seçim yapıldıktan sonra tekrar tıklanınca
-// listeyi açmıyordu (Chrome/Edge davranışı) — kullanıcı "alan kilitlendi"
-// sanıyordu. Bu bileşen her focus/click'te DAİMA tam listeyi açar.
-function makeCombo(inputId, secenekler) {
-  const input = $(inputId);
-  const sar = document.createElement("div");
-  sar.className = "combo";
-  input.parentNode.insertBefore(sar, input);
-  sar.appendChild(input);
-
-  const sil = document.createElement("button");
-  sil.type = "button"; sil.className = "combo-sil";
-  sil.setAttribute("aria-label", "Temizle"); sil.textContent = "×";
-  sar.appendChild(sil);
-
-  const panel = document.createElement("div");
-  panel.className = "combo-panel"; panel.setAttribute("role", "listbox");
-  sar.appendChild(panel);
-
+// -------------------------------------------------------------- açılır liste
+// Alanlara yazı yazılmıyor — yalnızca hazır seçeneklerden seçiliyor. Değer
+// gizli bir <input>/<select> içinde durduğu için özet, doğrulama, localStorage
+// ve gönderim mantığı olduğu gibi çalışmaya devam ediyor.
+//
+// Kimlik kuralı: değer elemanı "x" ise buton "xAc", metin "xGoster",
+// panel "xPop" olmalı.
+function secici(elId, secenekler, ayar = {}) {
+  const el = $(elId), btn = $(elId + "Ac"),
+        goster = $(elId + "Goster"), pop = $(elId + "Pop");
+  const bos = ayar.bos || null;          // değer boş olabilen alanlar için etiket
   let ogeler = secenekler.slice();
-  let suzulen = [];
-  let etkin = -1;
-  let seciliyor = false;   // programatik seçim sırasında input olayı paneli yeniden açmasın
 
-  function ciz(metin) {
-    const f = (metin || "").toLocaleLowerCase("tr");
-    suzulen = f ? ogeler.filter((o) => o.toLocaleLowerCase("tr").includes(f)) : ogeler;
-    panel.innerHTML = suzulen.length
-      ? suzulen.map((o, i) => `<div class="combo-oge" role="option" data-i="${i}">${kacir(o)}</div>`).join("")
-      : `<div class="combo-bos">Eşleşme yok — yazdığınız değer olduğu gibi kullanılacak.</div>`;
-    etkin = -1;
+  function metniYaz() {
+    goster.textContent = el.value || bos || "Seçin";
+    goster.classList.toggle("bos", !el.value);
   }
-  function vurgula() {
-    [...panel.children].forEach((el, i) => el.classList.toggle("etkin", i === etkin));
-    const el = panel.children[etkin];
-    if (el) el.scrollIntoView({ block: "nearest" });
+  function ciz() {
+    const liste = bos ? [""].concat(ogeler) : ogeler;
+    pop.innerHTML = liste.map((o, i) =>
+      `<button type="button" class="pop-oge${o === el.value ? " secili" : ""}` +
+      `${o ? "" : " bosluk"}" data-i="${i}">${kacir(o || bos)}</button>`).join("");
+    return liste;
   }
-  function ac(metin) { ciz(metin); panel.classList.add("acik"); }
-  function kapa() { panel.classList.remove("acik"); }
-  function doluMu() { sar.classList.toggle("dolu", Boolean(input.value)); }
+  let liste = [];
+  function ac() {
+    liste = ciz();
+    pop.classList.remove("gizli");
+    const s = pop.querySelector(".pop-oge.secili");
+    if (s) s.scrollIntoView({ block: "center" });
+  }
+  const kapa = () => pop.classList.add("gizli");
   function sec(v) {
-    input.value = v; doluMu(); kapa();
-    seciliyor = true;
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    seciliyor = false;
+    el.value = v;
+    metniYaz(); kapa();
+    el.dispatchEvent(new Event("input", { bubbles:true }));
+    el.dispatchEvent(new Event("change", { bubbles:true }));
   }
 
-  input.addEventListener("focus", () => ac(""));
-  input.addEventListener("click", () => ac(""));
-  input.addEventListener("input", () => { if (seciliyor) return; ac(input.value); doluMu(); });
-  input.addEventListener("keydown", (e) => {
-    if (!panel.classList.contains("acik")) {
-      if (e.key === "ArrowDown" || e.key === "Enter") ac(input.value);
-      return;
-    }
-    if (e.key === "ArrowDown") { e.preventDefault(); etkin = Math.min(etkin + 1, suzulen.length - 1); vurgula(); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); etkin = Math.max(etkin - 1, 0); vurgula(); }
-    else if (e.key === "Enter") { if (etkin >= 0) { e.preventDefault(); sec(suzulen[etkin]); } else kapa(); }
-    else if (e.key === "Escape") { kapa(); }
+  btn.addEventListener("click", () => pop.classList.contains("gizli") ? ac() : kapa());
+  btn.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") kapa();
+    else if (e.key === "ArrowDown" && pop.classList.contains("gizli")) { e.preventDefault(); ac(); }
   });
-  panel.addEventListener("mousedown", (e) => {
-    const o = e.target.closest(".combo-oge"); if (!o) return;
-    e.preventDefault(); sec(suzulen[Number(o.dataset.i)]);
+  pop.addEventListener("click", (e) => {
+    const o = e.target.closest(".pop-oge"); if (!o) return;
+    sec(liste[Number(o.dataset.i)]);
   });
-  sil.addEventListener("mousedown", (e) => e.preventDefault());
-  sil.addEventListener("click", () => {
-    input.value = ""; doluMu(); input.focus(); ac("");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+  document.addEventListener("click", (e) => {
+    if (!pop.contains(e.target) && !btn.contains(e.target)) kapa();
   });
-  document.addEventListener("click", (e) => { if (!sar.contains(e.target)) kapa(); });
+  metniYaz();
 
   return {
-    // İleride branşa göre canlı liste bağlanınca: combos.tesis.setOptions(yeni)
-    setOptions(yeni) { ogeler = yeni.slice(); if (panel.classList.contains("acik")) ciz(input.value); },
-    tazele: doluMu,
+    // Branşa göre canlı liste bağlanınca: sec.tesis.setOptions(yeniListe)
+    setOptions(yeni) { ogeler = yeni.slice(); if (!pop.classList.contains("gizli")) ac(); },
+    yenile: metniYaz,
   };
 }
 
@@ -577,14 +625,16 @@ const TESIS_SEC = ["TAHA AKGÜL SPOR KOMPLEKSİ", "ÇEKMEKÖY SPOR KOMPLEKSİ",
   "TEVFİK AYDENİZ SPOR TESİSİ"];
 const SALON_SEC = ["KAPALI SALON", "KAPALI SALON 1", "KAPALI SALON 2"];
 const TUR_SEC = ["Voleybol", "Basketbol"];
+const SAATLER = Array.from({length:24}, (_,h) => iki(h));
 
-const combos = {
-  brans: makeCombo("brans", BRANS_SEC),
-  tesis: makeCombo("tesis", TESIS_SEC),
-  salon: makeCombo("salon", SALON_SEC),
-  satisTuru: makeCombo("satisTuru", TUR_SEC),
+const sec = {
+  brans:     secici("brans", BRANS_SEC),
+  tesis:     secici("tesis", TESIS_SEC),
+  salon:     secici("salon", SALON_SEC, { bos:"Boş" }),
+  satisTuru: secici("satisTuru", TUR_SEC),
+  basH: secici("basH", SAATLER),   basD: secici("basD", DAKIKALAR),
+  bitH: secici("bitH", SAATLER),   bitD: secici("bitD", DAKIKALAR),
 };
-Object.values(combos).forEach((c) => c.tazele());
 
 // ------------------------------------------------------- 72 saat + özet
 const seansAni = () => {
@@ -621,8 +671,9 @@ function ozetYaz() {
 ["tarih","basH","basD"].forEach((id) => $(id).addEventListener("change", () => {
   if (id !== "tarih") { $("bitH").value = iki((+$("basH").value+1)%24);
                         $("bitD").value = $("basD").value;
-                        bitZaman.yenile(); }
+                        sec.bitH.yenile(); sec.bitD.yenile(); }
   acilisHesapla(); ozetYaz();
+  hizliTarihCiz(); hizliSaatCiz();
 }));
 ["bitH","bitD","acilis","tesis"].forEach((id) => $(id).addEventListener("change", ozetYaz));
 acilisHesapla(); ozetYaz();
@@ -650,7 +701,8 @@ acilisHesapla(); ozetYaz();
   function metniYaz() {
     const d = cozVal();
     goster.textContent = d
-      ? `${GUNLER[d.getDay()]}, ${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}`
+      ? `${iki(d.getDate())}.${iki(d.getMonth()+1)}.${String(d.getFullYear()).slice(2)} ` +
+        `${GUN_KISA[d.getDay()]}`
       : "Tarih seçin";
   }
   function ciz() {
@@ -703,57 +755,37 @@ acilisHesapla(); ozetYaz();
   metniYaz();
 })();
 
-// ------------------------------------------------------- saat/dakika seçici
-// Gizli <select>'ler (basH/basD/bitH/bitD) veriyi tutmaya devam ediyor; görünür
-// kısım aynı popup stilinde iki kaydırılabilir sütun (saat, dakika).
-function saatSeciciKur(saatId, dakikaId, btnId, gosterId, popId) {
-  const saatSel = $(saatId), dakSel = $(dakikaId), btn = $(btnId),
-        goster = $(gosterId), pop = $(popId);
-  const SAATLER = Array.from({length:24}, (_,h) => iki(h));
+// ------------------------------------------------------ hızlı seçim çipleri
+// Sık kullanılan tarih ve saatler tek tıkla; asıl seçiciler yine kullanılabilir.
+const HIZLI_TARIH = [["Bugün", 0], ["Yarın", 1], ["+3 gün", 3]];
+const HIZLI_SAAT = ["19", "20", "21"];
 
-  function metniYaz() { goster.textContent = `${saatSel.value}:${dakSel.value}`; }
-  function ciz() {
-    const kol = (deger, secilen) => deger.map((v) =>
-      `<button type="button" class="zaman-oge${v===secilen?" secili":""}" data-v="${v}">${v}</button>`
-    ).join("");
-    pop.innerHTML =
-      `<div class="zaman-kol" data-tur="saat">${kol(SAATLER, saatSel.value)}</div>` +
-      `<div class="zaman-kol" data-tur="dakika">${kol(DAKIKALAR, dakSel.value)}</div>`;
-  }
-  function ac() {
-    ciz(); pop.classList.remove("gizli");
-    pop.querySelectorAll(".zaman-oge.secili").forEach((el) => el.scrollIntoView({ block:"center" }));
-  }
-  const kapa = () => pop.classList.add("gizli");
-
-  // ciz() seçimde panelin innerHTML'ini yeniden yazıyor; bu, tıklanan orijinal
-  // düğümü DOM'dan koparıyor. Olay document'a kabarırken "pop.contains(e.target)"
-  // artık false dönüp paneli yanlışlıkla kapatıyordu. Bu bayrak o yanlış
-  // kapanmayı engelliyor (panel seçimden sonra açık kalmalı: hem saat hem
-  // dakika art arda seçilebilsin).
-  let icTiklama = false;
-  btn.addEventListener("click", () => pop.classList.contains("gizli") ? ac() : kapa());
-  pop.addEventListener("click", (e) => {
-    const oge = e.target.closest(".zaman-oge"); if (!oge) return;
-    icTiklama = true;
-    const tur = oge.closest(".zaman-kol").dataset.tur;
-    const sel = tur === "saat" ? saatSel : dakSel;
-    sel.value = oge.dataset.v;
-    sel.dispatchEvent(new Event("change", { bubbles:true }));
-    ciz(); metniYaz();
-  });
-  document.addEventListener("click", (e) => {
-    if (icTiklama) { icTiklama = false; return; }
-    if (!pop.contains(e.target) && !btn.contains(e.target)) kapa();
-  });
-  saatSel.addEventListener("change", metniYaz);
-  dakSel.addEventListener("change", metniYaz);
-  metniYaz();
-
-  return { yenile: metniYaz };
+function tarihDegeri(ekle) {
+  const d = new Date(); d.setDate(d.getDate() + ekle);
+  return `${d.getFullYear()}-${iki(d.getMonth()+1)}-${iki(d.getDate())}`;
 }
-const basZaman = saatSeciciKur("basH", "basD", "basAc", "basGoster", "basPop");
-const bitZaman = saatSeciciKur("bitH", "bitD", "bitAc", "bitGoster", "bitPop");
+function hizliTarihCiz() {
+  $("hizliTarih").innerHTML = HIZLI_TARIH.map(([ad, ekle]) =>
+    `<button type="button" class="cip${$("tarih").value === tarihDegeri(ekle) ? " etkin" : ""}"` +
+    ` data-ekle="${ekle}">${ad}</button>`).join("");
+}
+function hizliSaatCiz() {
+  $("hizliSaat").innerHTML = HIZLI_SAAT.map((h) =>
+    `<button type="button" class="cip${$("basH").value === h && $("basD").value === "00" ? " etkin" : ""}"` +
+    ` data-h="${h}">${h}:00</button>`).join("");
+}
+$("hizliTarih").addEventListener("click", (e) => {
+  const c = e.target.closest(".cip"); if (!c) return;
+  $("tarih").value = tarihDegeri(Number(c.dataset.ekle));
+  $("tarih").dispatchEvent(new Event("change", { bubbles:true }));
+});
+$("hizliSaat").addEventListener("click", (e) => {
+  const c = e.target.closest(".cip"); if (!c) return;
+  $("basH").value = c.dataset.h; $("basD").value = "00";
+  sec.basH.yenile(); sec.basD.yenile();
+  $("basH").dispatchEvent(new Event("change", { bubbles:true }));
+});
+hizliTarihCiz(); hizliSaatCiz();
 
 // ---------------------------------------------------------- doğrulama
 const KURAL = [
@@ -763,8 +795,9 @@ const KURAL = [
   ["tarih", (v)=> v ? "" : "Tarih gerekli."],
   ["acilis", (v)=> v ? "" : "Açılış anı gerekli."],
 ];
-// tarih alanı gizli bir <input>; hatayı/odağı görünür tetikleyici butonda göster.
-const gorsel = (id) => id === "tarih" ? $("tarihAc") : $(id);
+// Seçici alanların değeri gizli bir <input>'ta durur; hatayı/odağı görünür
+// tetikleyici butonda göster (yoksa alanın kendisinde).
+const gorsel = (id) => $(id + "Ac") || $(id);
 function dogrula() {
   let ilk = null;
   for (const [id, k] of KURAL) {
