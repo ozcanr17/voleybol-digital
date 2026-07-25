@@ -111,14 +111,19 @@
   const simdi = (fark) => Date.now() + (fark || 0);
 
   // ============================================================ ADIMLAR
-  async function anasayfaAdimi(is) {
-    const brans = document.getElementById("ddlKiralikBransFiltre");
-    if (!brans || brans.options.length <= 1) {
-      // Liste henüz dolmamış; widget görünmesi hazır olması demek değil.
-      await bekle(400);
-      return anasayfaAdimi(is);
+  // Bir <select> seçenekleri dolana kadar bekler. Widget'ın sayfada olması
+  // hazır olması demek değil --- boş listeye yazarsak seçim tutmuyor.
+  async function seceneklerDolsun(id, sureMs = 8000) {
+    const bitis = Date.now() + sureMs;
+    while (Date.now() < bitis) {
+      const el = document.getElementById(id);
+      if (el && el.options.length > 1) return el;
+      await bekle(200);
     }
+    return null;
+  }
 
+  async function anasayfaAdimi(is) {
     const alanlar = [
       ["ddlKiralikBransFiltre", is.brans, "Branş"],
       ["ddlKiralikTesisFiltre", is.tesis, "Tesis"],
@@ -126,21 +131,31 @@
     if (is.salon) alanlar.push(["ddlKiralikSalonFiltre", is.salon, "Salon"]);
 
     for (const [id, deger, ad] of alanlar) {
-      const el = document.getElementById(id);
-      const sonuc = secimYap(el, deger);
-      if (sonuc === "secildi") {
-        await kaydet(`${ad} seçildi: ${deger}`);
-        return;                       // postback olacak, betik yeniden çalışır
+      const el = await seceneklerDolsun(id);
+      if (!el) {
+        return bitir("hata",
+          `${ad} listesi dolmadı. Sayfayı yenileyip tekrar deneyin.`, "hata");
       }
+
+      const sonuc = secimYap(el, deger);
       if (sonuc === "secenek-yok") {
         return bitir("hata",
           `${ad} listesinde "${deger}" yok. Adı sitedekiyle birebir yazın.`, "hata");
       }
-      if (sonuc === "yok") return;    // alan henüz gelmemiş, bir sonraki yüklemede
+      if (sonuc === "secildi") {
+        await kaydet(`${ad} seçildi: ${deger}`);
+        // Site bu seçimde postback yapabilir de yapmayabilir de. Yaparsa sayfa
+        // yeniden yüklenir ve bu betik zaten baştan çalışır; yapmazsa burada
+        // kalıp sıradaki alana geçmeliyiz. Bu yüzden `return` ETMİYORUZ ---
+        // sadece bir sonraki listenin tazelenmesi için kısa bir es veriyoruz.
+        await bekle(900);
+      }
     }
 
     const ara = document.getElementById(ARAMA_BTN);
-    if (!ara) return;
+    if (!ara) {
+      return bitir("hata", "Arama butonu bulunamadı.", "hata");
+    }
     await kaydet("Filtreler hazır, aranıyor...");
     ara.click();
   }
@@ -152,6 +167,9 @@
     // Açılıştan önceysek bekle. Sayfa açık duruyor, yenilemeye gerek yok.
     if (kalan > 1500) {
       if (!is.beklemeBildirildi) {
+        // NOT: `guncelle` depoyu günceller ama elimizdeki nesneyi değiştirmez;
+        // yerelde de işaretlemezsek her turda tekrar günlüğe yazardı.
+        is.beklemeBildirildi = true;
         await guncelle({ beklemeBildirildi: true, durum: "bekleme" });
         await kaydet(`Açılışa ${Math.round(kalan / 1000)} sn var, bekleniyor.`);
         const baslik = [...document.querySelectorAll("h4")]
@@ -171,8 +189,16 @@
       return;
     }
 
-    // Süre doldu mu?
-    const gecen = simdi(fark) - is.acilis;
+    // Süre, YOKLAMANIN BAŞLADIĞI andan sayılır --- açılış anından değil.
+    // Açılış anı geçmişte kalan bir istekte (test ederken ya da geç
+    // başlatıldığında) "açılıştan bu yana geçen süre" zaten limitin üstünde
+    // olur ve otomasyon tek bir yoklama bile yapmadan pes ederdi. Selenium
+    // sürümünde tam olarak bu hata "0 yoklama" olarak karşımıza çıkmıştı.
+    if (!is.yoklamaBasi) {
+      is.yoklamaBasi = Date.now();
+      await guncelle({ yoklamaBasi: is.yoklamaBasi });
+    }
+    const gecen = Date.now() - is.yoklamaBasi;
     if (gecen > (is.pesEtme || 180) * 1000) {
       return bitir("hata",
         `${is.tarih} ${is.saat} seansı ${Math.round(gecen / 1000)} sn içinde ` +
@@ -188,8 +214,8 @@
     // Formu yeniden gönder. ÖNEMLİ: /satiskiralik adresine düz GET atmak
     // sunucudaki arama durumunu sıfırlıyor (filtreler "-- Seçiniz --" oluyor,
     // sayfa boşalıyor). __doPostBack ise mevcut değerlerle taze sonuç veriyor.
-    const ilkYirmiSaniye = gecen < 20000;
-    await bekle(ilkYirmiSaniye ? 300 : 1500);
+    // İlk saniyeler gerçek yarış; sonrası değil, o yüzden yavaşlıyoruz.
+    await bekle(gecen < 20000 ? 300 : 1500);
     formuYenidenGonder();
   }
 
@@ -222,9 +248,20 @@
       return;                          // postback → Sepete Ekle butonu gelecek
     }
 
-    // Zaten seçili: Sepete Ekle butonu çıkmış olmalı.
-    const sepet = document.getElementById(SEPETE_EKLE);
-    if (!sepet) { await bekle(500); return formAdimi(is); }
+    // Zaten seçili: Sepete Ekle butonu çıkmış olmalı. Buton satış türü
+    // seçilmeden sayfada hiç bulunmuyor, o yüzden çıkmasını bekliyoruz.
+    let sepet = null;
+    const sabir = Date.now() + 15000;
+    while (Date.now() < sabir) {
+      sepet = document.getElementById(SEPETE_EKLE);
+      if (sepet) break;
+      await bekle(300);
+    }
+    if (!sepet) {
+      return bitir("hata",
+        `"${is.satisTuru}" seçili ama Sepete Ekle butonu çıkmadı. ` +
+        `Bu seans için bu satış türü geçerli olmayabilir.`, "hata");
+    }
 
     if (is.sepeteEkle === false) {
       gorunurYap(sepet);
