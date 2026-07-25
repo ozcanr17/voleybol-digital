@@ -14,6 +14,17 @@
   const SATIS_TURU = "select2-ddlSatisTuru-container";
   const SEPETE_EKLE = "pageContent_lbtnSepeteEkle";
   const SMS_ALANI = "pageContent_txtDogrulamaKodu";
+  const ANASAYFA = "https://online.spor.istanbul/anasayfa";
+
+  // Seans, saatinden tam 72 saat önce listeye düşüyor. TAM o saniyede aramak
+  // riskli: sunucu isteği sınırın hemen öncesinde işlerse sayfa seans daha
+  // eklenmemişken render edilir. Bu yüzden aramayı 1 sn sonraya alıyoruz --- o
+  // an seansın listede olduğu garanti.
+  const ARAMA_GECIKMESI = 1000;
+
+  // Seans ilk aramada çıkmazsa: sayfayı tazelemek yerine baştan (anasayfa →
+  // filtreler → ara) deneniyor. Sayfa tazeleme filtreleri sıfırlıyordu.
+  const EN_FAZLA_TUR = 2;
 
   const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -56,6 +67,18 @@
     el.style.outline = "3px solid #2b5cf0";
     el.style.outlineOffset = "3px";
     setTimeout(() => { el.style.outline = eski; }, 1500);
+  }
+
+  // Metni birebir eşleşen en içteki elemanı bulur (başlığa kaydırmak için).
+  // Yalnızca yaprak düğümlere bakıyoruz; yoksa metni içeren dış kapsayıcılar
+  // da eşleşip sayfanın çok yukarısına kaydırırdı.
+  function metneGoreBul(metin) {
+    const adaylar = document.querySelectorAll(
+      "h1,h2,h3,h4,h5,h6,legend,strong,b,span,div,p,td,label");
+    for (const e of adaylar) {
+      if (e.children.length === 0 && e.textContent.trim() === metin) return e;
+    }
+    return null;
   }
 
   // Sitenin alert()'i sayfa dünyasında yakalanıp buraya bırakılıyor.
@@ -211,16 +234,18 @@
     // vaktinde ara. Böylece ilk arama sonucunda seans zaten çıkmış oluyor.
     if (!(await acilisiBekle(is))) return;     // durduruldu
 
-    await kaydet("Açılış anı geldi, aranıyor...");
+    await kaydet("Açılış anı geçti (+1 sn), aranıyor...");
     const ara = document.getElementById(ARAMA_BTN);
     if (!ara) return bitir("hata", "Arama butonu kayboldu.", "hata");
     tiklaVeyaPostback(ara);
   }
 
   // Sunucu saatine göre açılış anını bekler. Kullanıcı durdurursa false döner.
+  // Hedef, açılış anının kendisi değil 1 sn sonrası (bkz. ARAMA_GECIKMESI).
   async function acilisiBekle(is) {
     const fark = is.saatFarki || 0;
-    const kalan0 = is.acilis - simdi(fark);
+    const hedef = is.acilis + ARAMA_GECIKMESI;
+    const kalan0 = hedef - simdi(fark);
 
     if (kalan0 <= 0) {
       await kaydet("Seans zaten açılmış, doğrudan aranıyor.");
@@ -228,15 +253,15 @@
     }
 
     await guncelle({ durum: "bekleme" });
-    await kaydet(`Filtreler hazır. Açılışa ${Math.round(kalan0 / 1000)} sn var, ` +
-                 `filtreler seçili hâlde bekleniyor.`);
+    await kaydet(`Filtreler hazır. Açılışa ${Math.round((kalan0 - ARAMA_GECIKMESI) / 1000)} sn var; ` +
+                 `garanti olsun diye açılıştan 1 sn sonra aranacak.`);
 
     let sonBildirim = 0;
     while (true) {
       const guncel = await oku();
       if (!guncel || !guncel.aktif) return false;
 
-      const kalan = guncel.acilis - simdi(fark);
+      const kalan = guncel.acilis + ARAMA_GECIKMESI - simdi(fark);
       if (kalan <= 0) return true;
 
       // Uzun beklemelerde arada haber ver; sessiz kalıp donmuş gibi görünmesin.
@@ -274,40 +299,32 @@
     const btn = seansButonu(is.tarih, is.saat);
     if (btn) {
       await guncelle({ durum: "yakalandi" });
-      await kaydet(`Seans yakalandı (${(is.yoklama || 0) + 1}. yoklama), tıklanıyor.`, "iyi");
+      await kaydet(`Seans yakalandı (${(is.yoklama || 0) + 1}. deneme), tıklanıyor.`, "iyi");
       gorunurYap(btn, false);
       tiklaVeyaPostback(btn);         // postback → rezervasyon formu
       return;
     }
 
-    // Süre, YOKLAMANIN BAŞLADIĞI andan sayılır --- açılış anından değil.
-    // Açılış anı geçmişte kalan bir istekte (test ederken ya da geç
-    // başlatıldığında) "açılıştan bu yana geçen süre" zaten limitin üstünde
-    // olur ve otomasyon tek bir yoklama bile yapmadan pes ederdi. Selenium
-    // sürümünde tam olarak bu hata "0 yoklama" olarak karşımıza çıkmıştı.
-    if (!is.yoklamaBasi) {
-      is.yoklamaBasi = Date.now();
-      await guncelle({ yoklamaBasi: is.yoklamaBasi });
-    }
-    const gecen = Date.now() - is.yoklamaBasi;
-    if (gecen > (is.pesEtme || 180) * 1000) {
+    // Seans listede yok.
+    //
+    // Sonuç sayfasını yerinde tazelemek (postback / yeniden gönderim) çözüm
+    // değil: sunucu aramayı sıfırlıyor ve filtreler (branş/tesis/salon)
+    // kayboluyor, sonraki yoklamalar boş sayfayı tarıyor. Bunun yerine baştan
+    // gidiyoruz: anasayfaya dön → formu yeniden doldur → ara. Açılış anı
+    // geçtiği için bekleme adımı anında geçilir.
+    const tur = (is.yoklama || 0) + 1;
+    if (tur > EN_FAZLA_TUR) {
       return bitir("hata",
-        `${is.tarih} ${is.saat} seansı ${Math.round(gecen / 1000)} sn içinde ` +
-        `çıkmadı (${is.yoklama || 0} yoklama). Kapılmış ya da hiç açılmamış olabilir.`, "hata");
+        `${is.tarih} ${is.saat} seansı ${tur} denemede de listeye düşmedi. ` +
+        `Kapılmış ya da bu saatte hiç açılmamış olabilir.`, "hata");
     }
 
-    const n = (is.yoklama || 0) + 1;
-    await guncelle({ yoklama: n, durum: "yoklama" });
-    if (n === 1 || n % 10 === 0) {
-      await kaydet(`${n}. yoklama — sayfada ${seansSayisi()} seans var, aranan yok.`);
-    }
+    await guncelle({ yoklama: tur, durum: "yoklama" });
+    await kaydet(`Seans listede yok (sayfada ${seansSayisi()} seans). ` +
+                 `${tur}/${EN_FAZLA_TUR}: filtreler yeniden girilip aranacak.`);
 
-    // Formu yeniden gönder. ÖNEMLİ: /satiskiralik adresine düz GET atmak
-    // sunucudaki arama durumunu sıfırlıyor (filtreler "-- Seçiniz --" oluyor,
-    // sayfa boşalıyor). __doPostBack ise mevcut değerlerle taze sonuç veriyor.
-    // İlk saniyeler gerçek yarış; sonrası değil, o yüzden yavaşlıyoruz.
-    await bekle(gecen < 20000 ? 300 : 1500);
-    formuYenidenGonder();
+    await bekle(1000);
+    location.href = ANASAYFA;
   }
 
   // ---------------------------------------------------------- postback
@@ -349,16 +366,6 @@
     if (postbackYap(el)) return "postback";
     el.click();
     return "tiklama";
-  }
-
-  function formuYenidenGonder() {
-    const form = document.forms[0];
-    if (!form) return;
-    const hedef = form.querySelector('input[name="__EVENTTARGET"]');
-    const arg = form.querySelector('input[name="__EVENTARGUMENT"]');
-    if (hedef) hedef.value = "";
-    if (arg) arg.value = "";
-    form.submit();
   }
 
   async function formAdimi(is) {
@@ -417,8 +424,15 @@
     if (mesaj) await kaydet(`Site mesajı: ${mesaj}`);
 
     const alan = document.getElementById(SMS_ALANI);
-    gorunurYap(alan);
-    alan.focus();
+
+    // Kod alanına değil, "Rezervasyon İşlemi" başlığına kaydırıyoruz: kullanıcı
+    // kodu girmeden önce hangi seansı ve ücreti onayladığını görmeli. Başlık
+    // sayfanın en üstüne (sabit site başlığının hemen altına) geliyor.
+    gorunurYap(metneGoreBul("Rezervasyon İşlemi") || alan, false);
+
+    // focus() varsayılan olarak elemanı görünür alana kaydırır ve az önce
+    // ayarladığımız konumu bozardı.
+    alan.focus({ preventScroll: true });
 
     if (is.durum !== "sms") {
       await guncelle({ durum: "sms" });

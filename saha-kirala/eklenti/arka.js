@@ -20,27 +20,47 @@ async function sporSekmesiniAc() {
   return yeni.id;
 }
 
+// İşi durdurup gerekçesini kayda düşer. Zaten duran bir işe dokunmaz.
+async function durdur(mesaj, tur = "") {
+  const { is } = await chrome.storage.local.get("is");
+  if (!is || !is.aktif) return false;
+  is.aktif = false;
+  is.durum = "durduruldu";
+  is.kayit = (is.kayit || []).concat([{
+    t: new Date().toTimeString().slice(0, 8), m: mesaj, tur,
+  }]);
+  await chrome.storage.local.set({ is });
+  return true;
+}
+
+// Otomasyonun yürüdüğü sekme kapatılırsa iş sürdürülemez --- açıkta kalmış
+// gibi görünüp sessizce ölmesindense durumu net biçimde bildiriyoruz.
+chrome.tabs.onRemoved.addListener((sekmeId) => {
+  (async () => {
+    const { is } = await chrome.storage.local.get("is");
+    if (!is || !is.aktif || is.sekmeId !== sekmeId) return;
+    await durdur("Kullanıcı sekmeyi kapattı, otomasyon durduruldu.", "hata");
+  })();
+});
+
 chrome.runtime.onMessage.addListener((mesaj, gonderen, cevapla) => {
   (async () => {
     try {
       switch (mesaj && mesaj.komut) {
         case "baslat": {
+          // Sıra önemli: sekmeyi açmadan ÖNCE işi yazıyoruz, yoksa sekmede
+          // hemen çalışan içerik betiği depoyu boş bulup hiçbir şey yapmaz.
           await chrome.storage.local.set({ is: mesaj.is });
           const sekmeId = await sporSekmesiniAc();
+          // Sekme kimliğini sonradan ekliyoruz; sekme kapanırsa otomasyonu
+          // durdurabilmek için gerekli (chrome.tabs.onRemoved).
+          const { is } = await chrome.storage.local.get("is");
+          if (is) { is.sekmeId = sekmeId; await chrome.storage.local.set({ is }); }
           cevapla({ ok: true, sekmeId });
           break;
         }
         case "durdur": {
-          const { is } = await chrome.storage.local.get("is");
-          if (is) {
-            is.aktif = false;
-            is.durum = "durduruldu";
-            is.kayit = (is.kayit || []).concat([{
-              t: new Date().toTimeString().slice(0, 8),
-              m: "Kullanıcı durdurdu.", tur: "",
-            }]);
-            await chrome.storage.local.set({ is });
-          }
+          await durdur("Kullanıcı durdurdu.");
           cevapla({ ok: true });
           break;
         }

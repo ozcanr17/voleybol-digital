@@ -75,9 +75,12 @@
   .pop-oge { flex:none; padding:8px 10px; border:0; border-radius:8px; background:transparent;
              color:var(--ink); font:inherit; font-size:13.5px; font-weight:500; text-align:left;
              cursor:pointer; white-space:nowrap; }
+  /* Sıralama önemli: "boşluk" kuralı seçili/hover renklerinden ÖNCE gelmeli,
+     yoksa aynı özgüllükte olduğu için onları eziyor ve seçili "Boş" mavi
+     zeminde soluk gri kalıp okunmuyordu. */
+  .pop-oge.bosluk { color:var(--muted); font-style:italic; }
   .pop-oge:hover:not(:disabled) { background:var(--accent-soft); color:var(--accent); filter:none; }
   .pop-oge.secili, .pop-oge.secili:hover { background:var(--accent); color:#fff; }
-  .pop-oge.bosluk { color:var(--muted); font-style:italic; }
 
   /* Kaydırma çubuğu: tarayıcı varsayılanı beyaz ve köşeliydi; temaya uygun,
      yuvarlatılmış ve ince bir çubuk. */
@@ -270,7 +273,7 @@
         bilgisayara Python kurmanın yerini alıyor — arayüz aynen bu sayfa.
       </p>
       <ol class="kur">
-        <li><b>Eklentiyi indirin</b> <span>12 KB.</span>
+        <li><b>Eklentiyi indirin</b> <span>14 KB.</span>
           <div style="margin-top:8px"><a class="ghost" style="display:inline-block;
             padding:9px 16px;border:1px solid var(--line);border-radius:9px;
             text-decoration:none;font-weight:600;font-size:13.5px"
@@ -852,7 +855,7 @@ $("form").addEventListener("submit", async (e) => {
     saat:`${$("basH").value}:${$("basD").value} - ${$("bitH").value}:${$("bitD").value}`,
     acilis:new Date($("acilis").value).getTime(),
     sepeteEkle:!$("kuruTest").checked,
-    pesEtme:180, durum:"basliyor", yoklama:0, saatFarki:null,
+    durum:"basliyor", yoklama:0, saatFarki:null,
     kayit:[{ t:new Date().toTimeString().slice(0,8), m:"Başlatıldı.", tur:"" }],
   };
 
