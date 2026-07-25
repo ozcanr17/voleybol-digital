@@ -227,6 +227,21 @@ function durum(sinif, baslik, govde, aksiyon = "") {
   el("dactions").innerHTML = aksiyon;
 }
 
+// Port'ta bir sey dinliyor mu? `no-cors` istegi opak bir yanit dondurur ---
+// icerigini okuyamayiz ama sunucunun CEVAP VERDIGINI anlariz. Baglanti
+// kurulamazsa reddedilir. Bu sayede "uygulama kapali" ile "uygulama acik ama
+// tarayici erisimi engelliyor" durumlarini ayirt edebiliyoruz.
+async function portDinliyorMu() {
+  const iptal = new AbortController();
+  const zamanAsimi = setTimeout(() => iptal.abort(), 2500);
+  try {
+    await fetch(`${AGENT}/api/status`, {
+      signal: iptal.signal, mode: "no-cors", cache: "no-store" });
+    return true;
+  } catch { return false; }
+  finally { clearTimeout(zamanAsimi); }
+}
+
 async function algila() {
   const iptal = new AbortController();
   const zamanAsimi = setTimeout(() => iptal.abort(), 2500);
@@ -257,31 +272,73 @@ async function algila() {
   }
 }
 
-(async () => {
-  const bulundu = await algila();
-  if (bulundu) return;
+const YENIDEN = `<button class="btn sec" onclick="location.reload()">Tekrar kontrol et</button>`;
 
-  // Safari ve Firefox, HTTPS sayfadan yerel adrese isteği güvenlik gereği
-  // engelleyebiliyor. Bu durumda "kurulu değil" demek yanlış olur --- kurulu
-  // ama görülemiyor olabilir. Dürüst davranıp iki ihtimali de söylüyoruz.
-  const kisitli = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
-                  /firefox/i.test(navigator.userAgent);
+// Üç durumun tamamını yeniden değerlendirir. Hem ilk açılışta hem de arka
+// plandaki izleyicide bunu çağırıyoruz --- izleyici yalnızca `algila()`
+// çağırsaydı, uygulama açıkken tarayıcı engelliyorsa durumu hiç fark etmezdi.
+async function kontrolEt() {
+  if (await algila()) return true;
 
-  if (kisitli) {
-    durum("unsure", "Kurulu olup olmadığı anlaşılamadı",
-      `Bu tarayıcı güvenlik nedeniyle yerel uygulamalara erişimi engelliyor, bu yüzden
-       kontrol edemedik. Otomasyonu daha önce kurduysanız
-       <a href="${AGENT}" target="_blank">${AGENT}</a> adresini deneyin.
-       Kurmadıysanız aşağıdan devam edin.`,
-      `<div class="btnrow"><a class="btn sec" href="${AGENT}" target="_blank">Yine de açmayı dene</a></div>`);
-  } else {
-    durum("no", "Henüz kurulu değil",
-      `Bu bilgisayarda otomasyon bulunamadı. Aşağıdaki adımlarla birkaç dakikada
-       kurabilirsiniz. <span style="color:var(--faint)">Kurduysanız ve
-       çalışmıyorsa, önce uygulamayı başlatıp bu sayfayı yenileyin.</span>`,
-      `<div class="btnrow"><button class="btn sec" onclick="location.reload()">Tekrar kontrol et</button></div>`);
+  // Buraya düştüysek uygulamayı okuyamadık. Sebebi bilmeden "kurulu değil"
+  // demek yanlış olur: uygulama kurulu ama kapalı da olabilir, açık ama tarayıcı
+  // engelliyor da olabilir. Önce port'ta bir şey dinliyor mu, ona bakıyoruz.
+  const dinliyor = await portDinliyorMu();
+
+  if (dinliyor) {
+    // Sunucu cevap veriyor ama okuyamıyoruz -> tarayıcı izni engelliyor.
+    durum("unsure", "Uygulama çalışıyor ama tarayıcı erişimi engelliyor",
+      `Otomasyon bu bilgisayarda açık; bu sayfanın ona ulaşmasına tarayıcınız
+       izin vermiyor. Doğrudan açarak kullanabilirsiniz — hiçbir şey kaybetmezsiniz.
+       <br><br><span style="color:var(--faint)">Chrome adres çubuğunun solundaki
+       kilit simgesine tıklayıp "Yerel ağ" iznini verirseniz bu sayfa da
+       görebilir. Safari ve Firefox bu erişime hiç izin vermez.</span>`,
+      `<div class="btnrow"><a class="btn" href="${AGENT}" target="_blank">Uygulamayı aç</a>${YENIDEN}</div>`);
+    el("install").classList.add("hidden");
+    // BİLEREK false: bu durum kesinleşmiş sayılmaz. Uygulama açılırken TCP
+    // portu, sunucu istekleri karşılamaya hazır olmadan önce açılıyor; o aralığa
+    // denk gelen kontrol buraya düşer. "Kesinleşti" deyip izlemeyi durdurursak
+    // uygulama saniyeler sonra hazır olsa bile sayfa yanlış durumda kalır.
+    return false;
   }
+
+  // Port sessiz. Kurulu olup olmadığını buradan ANLAYAMAYIZ --- kurulmamış da
+  // olabilir, kurulmuş ama başlatılmamış da. İkisini de söylüyoruz.
+  durum("no", "Uygulama çalışmıyor",
+    `<b>Daha önce kurduysanız:</b> masaüstündeki <b>Saha Kiralama</b> kısayoluna
+     çift tıklayıp başlatın. Otomasyonun çalışır durumda olması gerekiyor —
+     kurulu olması yetmez. <span style="color:var(--faint)">Bu sayfa açık kalsın,
+     başlattığınız anda kendiliğinden fark edecek.</span>
+     <br><br><b>Hiç kurmadıysanız:</b> aşağıdaki adımlarla birkaç dakikada
+     kurabilirsiniz.`,
+    `<div class="btnrow">${YENIDEN}
+     <a class="btn sec" href="${AGENT}" target="_blank">${AGENT} adresini dene</a></div>`);
   el("install").classList.remove("hidden");
+  return false;
+}
+
+(async () => {
+  if (await kontrolEt()) return;
+
+  // Kullanıcı uygulamayı başlatınca sayfayı yenilemek zorunda kalmasın.
+  //
+  // `document.hidden` ile erken çıkmıyoruz: kullanıcı uygulamayı başlatmak için
+  // zaten bu sekmeden ayrılıyor, yani tam da beklediğimiz an sayfa "gizli"
+  // oluyor ve kontrol hiç çalışmıyordu. Arka plan zamanlayıcılarını tarayıcı
+  // kendisi kısıyor, ayrıca frenlememize gerek yok.
+  let bitti = false;
+  const izle = setInterval(async () => {
+    if (bitti) return;
+    if (await kontrolEt()) { bitti = true; clearInterval(izle); }
+  }, 3000);
+
+  // Asıl tetikleyici: kullanıcı uygulamayı başlatıp sekmeye geri döndüğü an.
+  const geriDondu = async () => {
+    if (bitti || document.hidden) return;
+    if (await kontrolEt()) { bitti = true; clearInterval(izle); }
+  };
+  document.addEventListener("visibilitychange", geriDondu);
+  window.addEventListener("focus", geriDondu);
 })();
 </script>
 </body>
