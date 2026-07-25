@@ -169,6 +169,8 @@
         "spor.istanbul'a giriş yapmış olduğunuzdan emin olup tekrar deneyin.", "hata");
     }
 
+    await guncelle({ durum: "filtre" });
+
     const alanlar = [
       ["ddlKiralikBransFiltre", is.brans, "Branş"],
       ["ddlKiralikTesisFiltre", is.tesis, "Tesis"],
@@ -202,7 +204,7 @@
       return bitir("hata", "Arama butonu bulunamadı.", "hata");
     }
     await kaydet("Filtreler hazır, aranıyor...");
-    ara.click();
+    tiklaVeyaPostback(ara);
   }
 
   async function yoklamaAdimi(is) {
@@ -230,7 +232,7 @@
       await guncelle({ durum: "yakalandi" });
       await kaydet(`Seans yakalandı (${(is.yoklama || 0) + 1}. yoklama), tıklanıyor.`, "iyi");
       gorunurYap(btn, false);
-      btn.click();                    // postback → rezervasyon formu
+      tiklaVeyaPostback(btn);         // postback → rezervasyon formu
       return;
     }
 
@@ -262,6 +264,47 @@
     // İlk saniyeler gerçek yarış; sonrası değil, o yüzden yavaşlıyoruz.
     await bekle(gecen < 20000 ? 300 : 1500);
     formuYenidenGonder();
+  }
+
+  // ---------------------------------------------------------- postback
+  // Sitedeki butonlar <a href="javascript:__doPostBack(...)"> biçiminde.
+  // Content script'ler izole dünyada çalışır ve Chrome, izole dünyadan
+  // başlatılan `javascript:` URL'lerini ÇALIŞTIRMAZ (aksi halde eklentiler
+  // sayfaya keyfi kod enjekte edebilirdi). Sonuç: element.click() sadece
+  // onclick özniteliğini tetikliyor --- arama butonunda bu "butonu kilitle ve
+  // dönen simgeyi göster" demek --- ama postback hiç olmuyor ve sayfa sonsuza
+  // kadar dönüyordu.
+  //
+  // Çözüm: href'e hiç güvenmeyip postback'i kendimiz yapıyoruz. Hedefi href'ten
+  // okuyup ASP.NET'in gizli alanlarına yazıyor ve formu gönderiyoruz.
+  function postbackHedefi(el) {
+    const h = (el && el.getAttribute("href")) || "";
+    let m = h.match(/WebForm_PostBackOptions\(\s*["']([^"']+)["']/);
+    if (m) return { hedef: m[1], arg: "" };
+    m = h.match(/__doPostBack\(\s*["']([^"']*)["']\s*,\s*["']([^"']*)["']/);
+    if (m) return { hedef: m[1], arg: m[2] };
+    return null;
+  }
+
+  function postbackYap(el) {
+    const p = postbackHedefi(el);
+    const form = document.forms[0];
+    if (!p || !form) return false;
+    const hedef = form.querySelector('input[name="__EVENTTARGET"]');
+    const arg = form.querySelector('input[name="__EVENTARGUMENT"]');
+    if (!hedef || !arg) return false;
+    hedef.value = p.hedef;
+    arg.value = p.arg;
+    form.submit();
+    return true;
+  }
+
+  // Önce gerçek postback'i dene, olmazsa tıklamaya düş (onclick'le çalışan
+  // düğmeler için --- örneğin sekmeler).
+  function tiklaVeyaPostback(el) {
+    if (postbackYap(el)) return "postback";
+    el.click();
+    return "tiklama";
   }
 
   function formuYenidenGonder() {
@@ -322,7 +365,7 @@
     gorunurYap(sepet);
     await bekle(400);
     await kaydet("Sepete ekleniyor...");
-    sepet.click();
+    tiklaVeyaPostback(sepet);
   }
 
   async function smsAdimi(is) {

@@ -362,19 +362,22 @@ const HATIRLA = ["brans","tesis","salon","satisTuru"];
 const kacir = (s) => String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
 const ADIMLAR = [
-  ["giris","Sekme"], ["filtre","Filtreler"], ["bekleme","Açılış"],
+  ["basliyor","Sekme"], ["filtre","Filtreler"], ["bekleme","Açılış"],
   ["yoklama","Yakalama"], ["form","Form"], ["sepet","Sepet"], ["sms","SMS"],
 ];
 const ETIKET = {
+  basliyor:"başlatılıyor", filtre:"filtreler seçiliyor",
   bekleme:"açılış bekleniyor", yoklama:"seans yoklanıyor", yakalandi:"seans yakalandı",
   form:"form dolduruluyor", sepet:"sepete ekleniyor", sms:"SMS bekleniyor",
   bitti:"tamamlandı", hata:"hata", durduruldu:"durduruldu",
 };
 const TON = {
   bitti:"ok", hata:"err", durduruldu:"warn", sms:"warn", yakalandi:"ok",
-  bekleme:"run", yoklama:"run", form:"run", sepet:"run",
+  basliyor:"run", filtre:"run", bekleme:"run", yoklama:"run",
+  form:"run", sepet:"run",
 };
-const CALISAN = new Set(["bekleme","yoklama","yakalandi","form","sepet","sms"]);
+const CALISAN = new Set(["basliyor","filtre","bekleme","yoklama","yakalandi",
+                         "form","sepet","sms"]);
 
 // ------------------------------------------------------------- bildirim
 function bildir(mesaj, tur = "", ms = 3600) {
@@ -516,7 +519,7 @@ $("form").addEventListener("submit", async (e) => {
     saat:`${$("basH").value}:${$("basD").value} - ${$("bitH").value}:${$("bitD").value}`,
     acilis:new Date($("acilis").value).getTime(),
     sepeteEkle:!$("kuruTest").checked,
-    pesEtme:180, durum:"bekleme", yoklama:0, saatFarki:null,
+    pesEtme:180, durum:"basliyor", yoklama:0, saatFarki:null,
     kayit:[{ t:new Date().toTimeString().slice(0,8), m:"Başlatıldı.", tur:"" }],
   };
 

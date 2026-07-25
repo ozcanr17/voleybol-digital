@@ -10,6 +10,7 @@
     (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
   const ETIKET = {
+    basliyor: "başlatılıyor", filtre: "filtreler seçiliyor",
     bekleme: "açılış bekleniyor", yoklama: "seans yoklanıyor",
     yakalandi: "seans yakalandı", form: "form dolduruluyor",
     sepet: "sepete ekleniyor", sms: "SMS bekleniyor",
@@ -19,7 +20,8 @@
     bitti: "ok", hata: "err", durduruldu: "warn", sms: "warn", yakalandi: "ok",
     bekleme: "run", yoklama: "run", form: "run", sepet: "run",
   };
-  const CALISAN = new Set(["bekleme", "yoklama", "yakalandi", "form", "sepet", "sms"]);
+  const CALISAN = new Set(["basliyor", "filtre", "bekleme", "yoklama",
+                           "yakalandi", "form", "sepet", "sms"]);
 
   let acilisMs = null;
 
