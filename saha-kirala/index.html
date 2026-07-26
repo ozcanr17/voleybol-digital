@@ -275,7 +275,7 @@
         bilgisayara Python kurmanın yerini alıyor — arayüz aynen bu sayfa.
       </p>
       <ol class="kur">
-        <li><b>Eklentiyi indirin</b> <span>21 KB.</span>
+        <li><b>Eklentiyi indirin</b> <span>22 KB.</span>
           <div style="margin-top:8px"><a class="ghost" style="display:inline-block;
             padding:9px 16px;border:1px solid var(--line);border-radius:9px;
             text-decoration:none;font-weight:600;font-size:13.5px"
@@ -501,9 +501,19 @@ const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağus
 const HATIRLA = ["brans","tesis","salon","satisTuru"];
 const kacir = (s) => String(s).replace(/[&<>]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 
+// Zaman çizelgesi gerçek akışı izler: siteye girilir, filtreler seçilir,
+// açılış anı beklenir, seans yakalanır, rezervasyon formu doldurulup sepete
+// eklenir, SMS kodu girilir ve iş sepette biter. Bir adım birden çok iç duruma
+// karşılık gelebilir (örn. "Form" hem satış türü seçimini hem sepete ekleme
+// isteğini kapsar).
 const ADIMLAR = [
-  ["basliyor","Sekme"], ["filtre","Filtreler"], ["bekleme","Açılış"],
-  ["yoklama","Yakalama"], ["form","Form"], ["sepet","Sepet"], ["sms","SMS"],
+  ["Giriş",     ["basliyor"]],
+  ["Filtreler", ["filtre"]],
+  ["Açılış",    ["bekleme"]],
+  ["Yakalama",  ["yoklama", "yakalandi"]],
+  ["Form",      ["form", "sepet"]],
+  ["SMS",       ["sms"]],
+  ["Sepet",     ["bitti"]],
 ];
 const ETIKET = {
   basliyor:"başlatılıyor", filtre:"filtreler seçiliyor",
@@ -872,7 +882,12 @@ $("durdur").onclick = async () => {
 };
 $("temizle").onclick = async () => {
   const c = await komut("temizle");
-  if (c.ok) { $("kayit").innerHTML = '<span class="bos">Temizlendi.</span>'; }
+  if (!c.ok) { bildir(c.hata || "Temizlenemedi.", "err"); return; }
+  // Arayüzü elle güncellemiyoruz: eklenti depoyu değiştirince "durum" olayı
+  // geliyor ve ciz() her şeyi (rozet, sayaç, adımlar, kayıt) tazeliyor. Biten
+  // bir iş temizlenince depodan tamamen silindiği için arayüz "boşta"ya döner.
+  // Burada ayrıca ciz(null) çağırmak yarış yaratırdı: çalışan bir işte yalnızca
+  // kayıt silinir, elle "boşta" çizersek gerçek durumu ezebilirdik.
 };
 
 // -------------------------------------------------------------- çizim
@@ -905,10 +920,12 @@ function ciz(is) {
     : '<span class="bos">İş başlatılınca burada görünür.</span>';
   $("kayit").scrollTop = $("kayit").scrollHeight;
 
-  const i = is ? ADIMLAR.findIndex((a) => a[0] === (is.durum === "yakalandi" ? "yoklama" : is.durum)) : -1;
-  $("adimlar").innerHTML = ADIMLAR.map(([id,ad], n) => {
-    const c = is && is.durum === "bitti" ? "oldu"
-            : (i < 0 ? "" : (n < i ? "oldu" : (n === i ? "simdi" : "")));
+  const i = is ? ADIMLAR.findIndex(([, durumlar]) => durumlar.includes(is.durum)) : -1;
+  $("adimlar").innerHTML = ADIMLAR.map(([ad], n) => {
+    // "bitti"de son adım da tamamlanmış sayılır, "şimdi" olarak kalmaz.
+    const c = i < 0 ? ""
+            : (n < i ? "oldu"
+                     : (n === i ? (is.durum === "bitti" ? "oldu" : "simdi") : ""));
     return `<div class="adim ${c}"><div class="top"></div>${ad}</div>`;
   }).join("");
 

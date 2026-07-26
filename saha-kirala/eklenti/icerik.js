@@ -69,16 +69,40 @@
     setTimeout(() => { el.style.outline = eski; }, 1500);
   }
 
-  // Metni birebir eşleşen en içteki elemanı bulur (başlığa kaydırmak için).
-  // Yalnızca yaprak düğümlere bakıyoruz; yoksa metni içeren dış kapsayıcılar
-  // da eşleşip sayfanın çok yukarısına kaydırırdı.
+  // Metni taşıyan EN İÇTEKİ elemanı bulur (başlığa kaydırmak için).
+  //
+  // Önceki sürüm yalnızca çocuğu olmayan düğümlere bakıp metni birebir
+  // karşılaştırıyordu; başlık `<h4><span>Rezervasyon İşlemi</span></h4>` gibi
+  // sarmalanmışsa ya da metinde fazladan boşluk/satır sonu varsa hiç
+  // eşleşmiyordu --- kaydırma da bu yüzden çalışmıyordu. Artık boşlukları
+  // normalleştirip eşleşenler arasından en az torunu olanı seçiyoruz.
   function metneGoreBul(metin) {
-    const adaylar = document.querySelectorAll(
-      "h1,h2,h3,h4,h5,h6,legend,strong,b,span,div,p,td,label");
-    for (const e of adaylar) {
-      if (e.children.length === 0 && e.textContent.trim() === metin) return e;
+    const duzelt = (s) => (s || "").replace(/\s+/g, " ").trim().toLocaleLowerCase("tr");
+    const hedef = duzelt(metin);
+    let enIyi = null, enAzTorun = Infinity;
+    for (const e of document.querySelectorAll(
+           "h1,h2,h3,h4,h5,h6,legend,strong,b,span,div,p,td,label")) {
+      if (duzelt(e.textContent) !== hedef) continue;
+      const torun = e.getElementsByTagName("*").length;
+      if (torun < enAzTorun) { enAzTorun = torun; enIyi = e; }
     }
-    return null;
+    return enIyi;
+  }
+
+  // Elemanı sayfanın en üstüne getirir (sabit site başlığının hemen altına).
+  //
+  // `behavior:"smooth"` yarıda kesilebiliyor ve postback sonrası sayfa
+  // yerleşimi biz kaydırdıktan sonra oturuyor --- ikisi de kaydırmayı
+  // etkisiz bırakıyordu. Anında kaydırıp kısa aralıklarla tekrarlıyoruz.
+  function ustuneKaydir(el, tepeBosluk = 100) {
+    if (!el) return;
+    const uygula = () => {
+      const y = el.getBoundingClientRect().top + window.pageYOffset - tepeBosluk;
+      window.scrollTo(0, Math.max(0, y));
+    };
+    uygula();
+    setTimeout(uygula, 250);
+    setTimeout(uygula, 900);
   }
 
   // Sitenin alert()'i sayfa dünyasında yakalanıp buraya bırakılıyor.
@@ -428,7 +452,7 @@
     // Kod alanına değil, "Rezervasyon İşlemi" başlığına kaydırıyoruz: kullanıcı
     // kodu girmeden önce hangi seansı ve ücreti onayladığını görmeli. Başlık
     // sayfanın en üstüne (sabit site başlığının hemen altına) geliyor.
-    gorunurYap(metneGoreBul("Rezervasyon İşlemi") || alan, false);
+    ustuneKaydir(metneGoreBul("Rezervasyon İşlemi") || alan);
 
     // focus() varsayılan olarak elemanı görünür alana kaydırır ve az önce
     // ayarladığımız konumu bozardı.
@@ -461,6 +485,18 @@
         await kaydet(`Bilgisayarın saati sunucudan ${Math.abs(f / 1000).toFixed(0)} sn ` +
                      `${f < 0 ? "ileri" : "geri"}. Sunucu saatine göre beklenecek.`);
       }
+    }
+
+    // Kod doğrulanınca site sepet sayfasına geçiriyor. Oraya düştüysek iş
+    // BİTMİŞTİR. Bu kontrol olmadan sepet sayfası tanınmıyor, akış en alttaki
+    // anasayfa adımına düşüyor ve "'Kiralama Yap' sekmesi açılamadı" diye
+    // gerçekte var olmayan bir hata yazılıyordu --- seans aslında sepetteydi.
+    if (yol.includes("uyesepet")) {
+      if (is.durum === "sms" || is.durum === "sepet") {
+        return bitir("bitti",
+          "Sepet sayfası açıldı: seans sepete eklendi. Ödemeyi sitede tamamlayın.", "iyi");
+      }
+      return;   // başka bir sebeple sepetteyiz; karışma
     }
 
     if (document.getElementById(SMS_ALANI)) return smsAdimi(is);

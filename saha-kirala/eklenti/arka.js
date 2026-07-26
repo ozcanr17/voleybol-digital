@@ -65,8 +65,17 @@ chrome.runtime.onMessage.addListener((mesaj, gonderen, cevapla) => {
           break;
         }
         case "temizle": {
+          // Biten/durmuş bir iş depoda kalıyor ve sayfa her açılışta eski
+          // "hata"/"tamamlandı" durumunu yeniden gösteriyordu. Artık temizleme
+          // işi tamamen siliyor: arayüz "boşta"ya dönüyor. Çalışan bir işi
+          // öldürmüyoruz --- onda yalnızca kayıt siliniyor.
           const { is } = await chrome.storage.local.get("is");
-          if (is) { is.kayit = []; await chrome.storage.local.set({ is }); }
+          if (is && is.aktif) {
+            is.kayit = [];
+            await chrome.storage.local.set({ is });
+          } else {
+            await chrome.storage.local.remove("is");
+          }
           cevapla({ ok: true });
           break;
         }
