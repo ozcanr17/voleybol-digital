@@ -148,10 +148,24 @@
   // Açılış anını sunucu saatine göre beklemek şart.
   async function sunucuFarki() {
     try {
+      const t0 = Date.now();
       const y = await fetch(location.origin + "/", { method: "HEAD", cache: "no-store" });
+      const t1 = Date.now();
       const d = y.headers.get("Date");
       if (!d) return 0;
-      return new Date(d).getTime() - Date.now();
+
+      // İki sistematik hatayı düzeltiyoruz; yoksa ölçüm "sunucu geride" der ve
+      // açılışı hep ~1 sn GEÇ yakalarız:
+      //
+      // 1) HTTP "Date" başlığı saniyeye yuvarlanmış (RFC 7231, milisaniye yok).
+      //    Damganın gösterdiği an [D, D+1000) aralığının başıdır; beklenen
+      //    gerçek değer D+500.
+      // 2) Date.now()'u yanıt geldikten SONRA okursak ağ gidiş-dönüşü kadar
+      //    ileri bir yerel saatle karşılaştırmış oluruz. Damganın atıldığı an
+      //    yaklaşık gidiş-dönüşün ortasıdır.
+      const sunucu = new Date(d).getTime() + 500;
+      const yerel = (t0 + t1) / 2;
+      return Math.round(sunucu - yerel);
     } catch { return 0; }
   }
 
@@ -258,9 +272,18 @@
     // vaktinde ara. Böylece ilk arama sonucunda seans zaten çıkmış oluyor.
     if (!(await acilisiBekle(is))) return;     // durduruldu
 
-    await kaydet("Açılış anı geçti (+1 sn), aranıyor...");
     const ara = document.getElementById(ARAMA_BTN);
     if (!ara) return bitir("hata", "Arama butonu kayboldu.", "hata");
+
+    // Tıklamanın açılış anına göre GERÇEK sapmasını kayda geçiyoruz. Hedef
+    // +1.00 sn (ARAMA_GECIKMESI); buradaki sayı sunucu saatine göre ölçülür.
+    // Sapma büyükse sebebi ya sekmenin arka planda olması (Chrome görünmeyen
+    // sekmelerde setTimeout'u ~1 sn'ye kısıtlar) ya da saat farkı ölçümüdür.
+    // Not: değer tıklamadan hemen önce alınıyor; araya yalnızca bir depo
+    // yazımı (~birkaç ms) giriyor.
+    const sapma = (simdi(is.saatFarki || 0) - is.acilis) / 1000;
+    await kaydet(`Arama tetikleniyor — açılıştan +${sapma.toFixed(2)} sn ` +
+                 `(hedef +${(ARAMA_GECIKMESI / 1000).toFixed(2)} sn).`);
     tiklaVeyaPostback(ara);
   }
 
@@ -281,12 +304,24 @@
                  `garanti olsun diye açılıştan 1 sn sonra aranacak.`);
 
     let sonBildirim = 0;
+    let gizliUyarildi = false;
     while (true) {
       const guncel = await oku();
       if (!guncel || !guncel.aktif) return false;
 
       const kalan = guncel.acilis + ARAMA_GECIKMESI - simdi(fark);
       if (kalan <= 0) return true;
+
+      // Chrome, görünmeyen sekmelerde setTimeout'u kısıtlar (5 dakikadan uzun
+      // süre arka planda kalan sekmede dakikada bire kadar düşebilir). Bu,
+      // aşağıdaki beklemeyi uzatıp açılış anını geç yakalatabilir --- sessizce
+      // yaşanmasın diye bir kez uyarıyoruz.
+      if (document.hidden && !gizliUyarildi) {
+        gizliUyarildi = true;
+        await kaydet("UYARI: Bu sekme arka planda. Chrome arka plandaki " +
+                     "sekmelerde zamanlayıcıları yavaşlattığı için açılış anı " +
+                     "geç yakalanabilir; sekmeyi önde bırakın.", "hata");
+      }
 
       // Uzun beklemelerde arada haber ver; sessiz kalıp donmuş gibi görünmesin.
       const dk = Math.floor(kalan / 60000);
