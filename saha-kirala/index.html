@@ -88,6 +88,35 @@
   .combo-oge:hover, .combo-oge.etkin { background:var(--accent-soft); color:var(--accent); }
   .combo-bos { padding:8px 10px; font-size:13px; color:var(--muted); }
 
+  /* Özel tarih seçici (takvim popup) */
+  .tarih-alan { position:relative; }
+  .secici-btn { width:100%; display:flex; align-items:center; justify-content:space-between;
+                gap:8px; padding:10px 12px; border:1px solid var(--line); border-radius:9px;
+                background:var(--raise); color:var(--ink); font:inherit; font-size:14px;
+                font-weight:400; text-align:left; cursor:pointer; }
+  .secici-btn:hover:not(:disabled) { border-color:var(--faint); filter:none; background:var(--raise); }
+  .secici-btn.bad { border-color:var(--err); box-shadow:0 0 0 3px var(--err-soft); }
+  .secici-ok { color:var(--faint); font-size:12px; flex:none; }
+  .takvim { position:absolute; z-index:40; top:calc(100% + 6px); left:0; width:290px; max-width:92vw;
+            background:var(--card); border:1px solid var(--line); border-radius:12px;
+            box-shadow:var(--shadow); padding:12px; }
+  .takvim.gizli { display:none; }
+  .tk-bas { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .tk-baslik { font-size:13.5px; font-weight:700; }
+  .tk-ok { width:30px; height:30px; padding:0; border:0; border-radius:8px; background:transparent;
+           color:var(--muted); font-size:18px; line-height:1; cursor:pointer; }
+  .tk-ok:hover:not(:disabled) { background:var(--line2); color:var(--ink); filter:none; }
+  .tk-hafta { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:4px; }
+  .tk-hafta span { text-align:center; font-size:11px; color:var(--faint); padding:4px 0; }
+  .tk-izgara { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+  .tk-bos { aspect-ratio:1; }
+  .tk-gun { aspect-ratio:1; width:100%; padding:0; border:0; border-radius:8px; background:transparent;
+            color:var(--ink); font:inherit; font-size:13px; font-weight:500; cursor:pointer; }
+  .tk-gun:hover:not(:disabled) { background:var(--accent-soft); color:var(--accent); filter:none; }
+  .tk-gun.bugun { box-shadow:inset 0 0 0 1px var(--accent); }
+  .tk-gun.secili, .tk-gun.secili:hover { background:var(--accent); color:#fff; }
+  .tk-gun:disabled { color:var(--faint); opacity:.38; cursor:not-allowed; }
+
   .kutu { display:flex; align-items:flex-start; gap:9px; padding:7px 0; }
   .kutu input { width:17px; height:17px; flex:none; margin-top:1px; accent-color:var(--accent); }
   .kutu label { margin:0; color:var(--ink); font-size:13.5px; cursor:pointer; }
@@ -261,8 +290,15 @@
           <h2><span class="num">2</span> Seans</h2>
           <div class="g3">
             <div class="alan">
-              <label for="tarih">Tarih</label>
-              <input id="tarih" type="date">
+              <label for="tarihAc">Tarih</label>
+              <div class="tarih-alan">
+                <input id="tarih" type="date" hidden>
+                <button type="button" id="tarihAc" class="secici-btn" aria-haspopup="dialog">
+                  <span id="tarihGoster">Tarih seçin</span>
+                  <span class="secici-ok" aria-hidden="true">▾</span>
+                </button>
+                <div id="takvim" class="takvim gizli" role="dialog" aria-label="Tarih seçin"></div>
+              </div>
               <div class="hata-msg" id="e-tarih"></div>
             </div>
             <div class="alan">
@@ -571,6 +607,82 @@ function ozetYaz() {
 ["bitH","bitD","acilis","tesis"].forEach((id) => $(id).addEventListener("change", ozetYaz));
 acilisHesapla(); ozetYaz();
 
+// ------------------------------------------------------- takvim (tarih seçici)
+// Gizli <input id="tarih" type="date"> veriyi tutar (YYYY-MM-DD); görünür kısım
+// bu özel takvim. Seçim yapılınca gizli input'a yazıp change/input olaylarını
+// tetikliyoruz — böylece özet, 72 saat hesabı ve doğrulama olduğu gibi çalışır.
+(function takvimKur() {
+  const inp = $("tarih"), btn = $("tarihAc"), goster = $("tarihGoster"), pop = $("takvim");
+  const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos",
+                 "Eylül","Ekim","Kasım","Aralık"];
+  const HAFTA = ["Pt","Sa","Ça","Pe","Cu","Ct","Pz"];   // Pazartesi başlangıçlı
+  let goruntuAy;   // görüntülenen ayın 1'i
+
+  const cozVal = () => {
+    const [y,a,g] = (inp.value||"").split("-").map(Number);
+    return y ? new Date(y, a-1, g) : null;
+  };
+  function yazVal(d) {
+    inp.value = `${d.getFullYear()}-${iki(d.getMonth()+1)}-${iki(d.getDate())}`;
+    inp.dispatchEvent(new Event("input", { bubbles:true }));
+    inp.dispatchEvent(new Event("change", { bubbles:true }));
+  }
+  function metniYaz() {
+    const d = cozVal();
+    goster.textContent = d
+      ? `${GUNLER[d.getDay()]}, ${d.getDate()} ${AYLAR[d.getMonth()]} ${d.getFullYear()}`
+      : "Tarih seçin";
+  }
+  function ciz() {
+    const secili = cozVal();
+    const yil = goruntuAy.getFullYear(), ay = goruntuAy.getMonth();
+    const oncesi = (new Date(yil, ay, 1).getDay() + 6) % 7;   // Pazartesi = 0
+    const gunSayisi = new Date(yil, ay+1, 0).getDate();
+    const bugun = new Date(); bugun.setHours(0,0,0,0);
+    let h = "";
+    for (let i=0; i<oncesi; i++) h += `<span class="tk-bos"></span>`;
+    for (let g=1; g<=gunSayisi; g++) {
+      const d = new Date(yil, ay, g);
+      const c = ["tk-gun"];
+      if (d.getTime() === bugun.getTime()) c.push("bugun");
+      if (secili && d.getTime() === secili.getTime()) c.push("secili");
+      const gecmis = d < bugun;
+      h += `<button type="button" class="${c.join(' ')}" data-g="${g}"` +
+           `${gecmis ? " disabled" : ""}>${g}</button>`;
+    }
+    pop.innerHTML =
+      `<div class="tk-bas">` +
+        `<button type="button" class="tk-ok" data-yon="-1" aria-label="Önceki ay">‹</button>` +
+        `<span class="tk-baslik">${AYLAR[ay]} ${yil}</span>` +
+        `<button type="button" class="tk-ok" data-yon="1" aria-label="Sonraki ay">›</button>` +
+      `</div>` +
+      `<div class="tk-hafta">${HAFTA.map((g)=>`<span>${g}</span>`).join("")}</div>` +
+      `<div class="tk-izgara">${h}</div>`;
+  }
+  function ac() {
+    const s = cozVal() || new Date();
+    goruntuAy = new Date(s.getFullYear(), s.getMonth(), 1);
+    ciz(); pop.classList.remove("gizli");
+  }
+  const kapa = () => pop.classList.add("gizli");
+
+  btn.addEventListener("click", () => pop.classList.contains("gizli") ? ac() : kapa());
+  pop.addEventListener("click", (e) => {
+    const ok = e.target.closest(".tk-ok");
+    if (ok) { goruntuAy.setMonth(goruntuAy.getMonth() + Number(ok.dataset.yon)); ciz(); return; }
+    const gun = e.target.closest(".tk-gun");
+    if (gun && !gun.disabled) {
+      yazVal(new Date(goruntuAy.getFullYear(), goruntuAy.getMonth(), Number(gun.dataset.g)));
+      metniYaz(); kapa();
+    }
+  });
+  document.addEventListener("click", (e) => {
+    if (!pop.contains(e.target) && !btn.contains(e.target)) kapa();
+  });
+  inp.addEventListener("change", metniYaz);
+  metniYaz();
+})();
+
 // ---------------------------------------------------------- doğrulama
 const KURAL = [
   ["brans", (v)=> v ? "" : "Branş gerekli."],
@@ -579,24 +691,26 @@ const KURAL = [
   ["tarih", (v)=> v ? "" : "Tarih gerekli."],
   ["acilis", (v)=> v ? "" : "Açılış anı gerekli."],
 ];
+// tarih alanı gizli bir <input>; hatayı/odağı görünür tetikleyici butonda göster.
+const gorsel = (id) => id === "tarih" ? $("tarihAc") : $(id);
 function dogrula() {
   let ilk = null;
   for (const [id, k] of KURAL) {
     const m = k($(id).value.trim());
-    $(id).classList.toggle("bad", !!m);
+    gorsel(id).classList.toggle("bad", !!m);
     const e = $("e-"+id);
     if (e) { e.textContent = m; e.classList.toggle("gor", !!m); }
     if (m && !ilk) ilk = { id, m };
   }
   if (ilk) {
-    $(ilk.id).scrollIntoView({ behavior:"smooth", block:"center" });
-    setTimeout(() => $(ilk.id).focus({ preventScroll:true }), 250);
+    gorsel(ilk.id).scrollIntoView({ behavior:"smooth", block:"center" });
+    setTimeout(() => gorsel(ilk.id).focus({ preventScroll:true }), 250);
     bildir(ilk.m, "err");
   }
   return !ilk;
 }
 KURAL.forEach(([id]) => $(id).addEventListener("input", () => {
-  $(id).classList.remove("bad");
+  gorsel(id).classList.remove("bad");
   const e = $("e-"+id); if (e) e.classList.remove("gor");
 }));
 
