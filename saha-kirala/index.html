@@ -502,6 +502,7 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const iki = (n) => String(n).padStart(2, "0");
+const GIRIS_URL = "https://online.spor.istanbul/uyegiris";
 const DAKIKALAR = ["00", "15", "30", "45"];
 const GUNLER = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
 const AYLAR = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos",
@@ -964,9 +965,13 @@ function eklentiSurumu() {
 function eklentiKuruldu(surum) {
   eklentiVar = true;
   $("eklentiDurum").className = "durumKutu ok";
+  // spor.istanbul bağlantısı yeni sekmede açılıyor: kullanıcı giriş yapmadıysa
+  // bu sayfadan ayrılmadan oturumunu açıp geri dönebilsin. `noopener` şart ---
+  // açılan sayfanın window.opener üzerinden buraya erişmesini engeller.
   $("eklentiDurum").innerHTML =
     `<strong>Motor hazır</strong> — eklenti ${kacir(surum)} kurulu. ` +
-    `spor.istanbul'a giriş yaptıysanız aşağıdan başlatabilirsiniz.`;
+    `<a href="${GIRIS_URL}" target="_blank" rel="noopener">spor.istanbul</a>'a ` +
+    `giriş yaptıysanız aşağıdan başlatabilirsiniz.`;
   $("kurulumBlok").classList.add("gizli");
   $("basla").disabled = false;
 }
