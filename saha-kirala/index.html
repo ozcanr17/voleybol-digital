@@ -126,6 +126,14 @@
   /* Saat ve dakika ayrı ayrı seçiliyor: [19] : [30] */
   .seans-satir { grid-template-columns:minmax(0,1.45fr) minmax(0,1fr) minmax(0,1fr); }
   @media (max-width:460px) { .seans-satir { grid-template-columns:1fr; } }
+
+  /* Salon kutusu içeriğine göre gereğinden genişti ("KAPALI SALON 1" kutunun
+     yarısını bile doldurmuyordu). Eşit bölüşüm (1fr 1fr) yerine 5:3 --- salon
+     satırın %50'si yerine %37.5'i, yani %25 daha dar; artan yer uzun adların
+     sığması gereken tesise gidiyor. Açılır liste `min-width:100%` olduğu için
+     seçenekler yine tam okunur, gerekirse kutudan taşarak genişler. */
+  .saha-satir { grid-template-columns:minmax(0,5fr) minmax(0,3fr); }
+  @media (max-width:460px) { .saha-satir { grid-template-columns:1fr; } }
   .zaman-ikili { display:flex; align-items:center; gap:5px; }
   .zaman-ikili .secici-alan { flex:1; min-width:0; }
   .zaman-ikili .iki-nokta { color:var(--faint); font-weight:700; flex:none; }
@@ -275,7 +283,7 @@
         bilgisayara Python kurmanın yerini alıyor — arayüz aynen bu sayfa.
       </p>
       <ol class="kur">
-        <li><b>Eklentiyi indirin</b> <span>22 KB.</span>
+        <li><b>Eklentiyi indirin</b> <span>38 KB.</span>
           <div style="margin-top:8px"><a class="ghost" style="display:inline-block;
             padding:9px 16px;border:1px solid var(--line);border-radius:9px;
             text-decoration:none;font-weight:600;font-size:13.5px"
@@ -312,7 +320,7 @@
             </div>
             <div class="hata-msg" id="e-brans"></div>
           </div>
-          <div class="g2">
+          <div class="g2 saha-satir">
             <div class="alan">
               <label for="tesisAc">Tesis</label>
               <div class="secici-alan">
@@ -558,8 +566,12 @@ function komut(ad, is) {
     const id = ++sonIstek;
     bekleyen.set(id, coz);
     window.postMessage({ kaynak:"saha-kirala-sayfa", komut:ad, is, istekId:id }, location.origin);
+    // Genellikle eklenti sayfa açıkken yeniden yüklenmiştir: sayfadaki eski
+    // içerik betiği artık eklentiye ulaşamaz. Çare sayfayı yenilemek.
     setTimeout(() => { if (bekleyen.has(id)) {
-      bekleyen.delete(id); coz({ ok:false, hata:"Eklenti yanıt vermedi." }); } }, 6000);
+      bekleyen.delete(id);
+      coz({ ok:false, hata:"Eklenti yanıt vermedi. Sayfayı yenileyip " +
+                           "(Cmd/Ctrl + R) tekrar deneyin." }); } }, 6000);
   });
 }
 
